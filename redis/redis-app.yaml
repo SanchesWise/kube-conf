@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: gitlab-redis
+  name: redis
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -43,7 +43,7 @@ spec:
 #          value: "0.5"
   destination:
     server: 'https://kubernetes.default.svc'
-    namespace: gitlab
+    namespace: redis
   syncPolicy:
     automated:
       prune: true
