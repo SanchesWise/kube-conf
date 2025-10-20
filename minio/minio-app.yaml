@@ -1,0 +1,63 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gitlab-minio
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://charts.min.io/
+    targetRevision: 5.4.0
+    helm:
+      parameters:
+        - name: consoleIngress.enabled
+          value: 'true'
+        - name: consoleIngress.hosts[0]
+          value: minio.ccsfarm.local
+        - name: consoleIngress.ingressClassName
+          value: nginx
+        - name: consoleService.type
+          value: NodePort
+        - name: image.tag
+          value: RELEASE.2023-11-01T01-57-10Z-cpuv1
+        - name: mcImage.tag
+          value: RELEASE.2023-11-01T01-57-10Z-cpuv1          
+        - name: replicas
+          value: '3'
+        - name: resources.requests.memory
+          value: 3Gi
+      values: |
+        mode: distributed
+        rootUser: admin
+        rootPassword: password
+        persistence:
+          enabled: true
+          storageClass: "managed-nfs-storage"
+          size: 2Gi
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+        securityContext:
+          runAsUser: 1000
+          runAsGroup: 1000
+          fsGroup: 1000
+        # Критически важно для работы консоли и API
+        service:
+          type: ClusterIP
+          port: 9000
+        consoleService:
+          type: ClusterIP
+          port: 9001
+    chart: minio
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: gitlab
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
