@@ -59,7 +59,7 @@ spec:
     spec:
       terminationGracePeriodSeconds: 30
       securityContext:
-        runAsUser: 65534
+        runAsUser: 999
         runAsNonRoot: true
       containers:
         - name: postgres
