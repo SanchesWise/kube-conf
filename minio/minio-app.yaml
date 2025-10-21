@@ -36,7 +36,7 @@ spec:
           value: password
         - name: rootUser
           value: admin
-    chart: minio
+      chart: minio
   destination:
     server: https://kubernetes.default.svc
     namespace: minio
