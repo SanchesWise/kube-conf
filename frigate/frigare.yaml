@@ -96,6 +96,19 @@ spec:
       labels:
         app: frigate
     spec:
+      initContainers:
+      - name: fix-shm-permissions
+        image: busybox:1.34
+        command:
+        - sh
+        - -c
+        - |
+          mkdir -p /dev/shm/logs
+          chown -R 1000:1000 /dev/shm/logs
+          chmod -R 755 /dev/shm/logs
+        volumeMounts:
+        - name: shm
+          mountPath: /dev/shm    
       containers:
       - name: frigate
         image: ghcr.io/blakeblackshear/frigate:stable
