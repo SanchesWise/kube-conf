@@ -10,32 +10,32 @@ spec:
   source:
     repoURL: https://helm.min.io/
     targetRevision: 5.4.0
-  helm:
-    parameters:
-      - name: consoleIngress.enabled
-        value: 'true'
-      - name: consoleIngress.hosts[0]
-        value: minio.ccsfarm.local
-      - name: consoleIngress.ingressClassName
-        value: nginx
-      - name: consoleService.type
-        value: NodePort
-      - name: image.tag
-        value: RELEASE.2023-11-01T01-57-10Z-cpuv1
-      - name: mcImage.tag
-        value: RELEASE.2023-11-01T01-57-10Z-cpuv1
-      - name: replicas
-        value: '3'
-      - name: resources.requests.memory
-        value: 512Mi
-      - name: persistence.size
-        value: 20Gi
-      - name: persistence.storageClass
-        value: managed-nfs-storage
-      - name: rootPassword
-        value: password
-      - name: rootUser
-        value: admin
+    helm:
+      parameters:
+        - name: consoleIngress.enabled
+          value: 'true'
+        - name: consoleIngress.hosts[0]
+          value: minio.ccsfarm.local
+        - name: consoleIngress.ingressClassName
+          value: nginx
+        - name: consoleService.type
+          value: NodePort
+        - name: image.tag
+          value: RELEASE.2023-11-01T01-57-10Z-cpuv1
+        - name: mcImage.tag
+          value: RELEASE.2023-11-01T01-57-10Z-cpuv1
+        - name: replicas
+          value: '3'
+        - name: resources.requests.memory
+          value: 512Mi
+        - name: persistence.size
+          value: 20Gi
+        - name: persistence.storageClass
+          value: managed-nfs-storage
+        - name: rootPassword
+          value: password
+        - name: rootUser
+          value: admin
     chart: minio
   destination:
     server: https://kubernetes.default.svc
