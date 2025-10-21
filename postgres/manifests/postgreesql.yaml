@@ -36,8 +36,8 @@ metadata:
   name: postgres-secret
 type: Opaque
 stringData:
-  PGUSER: sanches
-  PGPASSWORD: password
+  POSTGRES_USER: sanches
+  POSTGRES_PASSWORD: password
 --- 
 apiVersion: apps/v1
 kind: StatefulSet
