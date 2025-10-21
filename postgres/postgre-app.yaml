@@ -8,7 +8,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/SanchesWise/kube-conf'
+    repoURL: 'https://github.com/SanchesWise/kube-conf.git'
     path: postgres/manifests
     targetRevision: main
   destination:
