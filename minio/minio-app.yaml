@@ -8,7 +8,7 @@ metadata:
 spec:
   project: utils
   source:
-    repoURL: https://charts.min.io/
+    repoURL: https://helm.min.io/
     targetRevision: 5.4.0
   helm:
     parameters:
