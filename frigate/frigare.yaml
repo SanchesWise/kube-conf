@@ -122,6 +122,8 @@ spec:
         volumeMounts:
         - name: config_base
           mountPath: /config_base
+        - name: config
+          mountPath: /config        
         - name: storage
           mountPath: /media/frigate
         - name: tmp-cache
@@ -153,6 +155,9 @@ spec:
       - name: config_base
         configMap:
           name: frigate-config
+      - name: config
+        persistentVolumeClaim:
+          claimName: frigate-config      
       - name: storage
         persistentVolumeClaim:
           claimName: frigate-storage
