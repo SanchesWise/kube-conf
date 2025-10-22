@@ -135,7 +135,7 @@ spec:
             memory: "2Gi"
             cpu: "2000m"
         securityContext:
-          privileged: false
+          privileged: true
           runAsUser: 1000
           runAsGroup: 1000
         livenessProbe:
