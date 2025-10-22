@@ -78,6 +78,19 @@ spec:
     requests:
       storage: 100Gi
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: frigate-config
+  namespace: frigate
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: managed-nfs-storage
+  resources:
+    requests:
+      storage: 10Mi
+---
 # Deployment Frigate
 apiVersion: apps/v1
 kind: Deployment
