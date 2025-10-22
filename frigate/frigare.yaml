@@ -238,4 +238,4 @@ spec:
           service:
             name: frigate-service
             port:
-              number: 50001
+              number: 5000
