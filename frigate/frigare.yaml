@@ -32,7 +32,7 @@ data:
         detect:
           enabled: true
           width: 1280
-          height: 720
+          height: 960
         record:
           enabled: true
           retain:
