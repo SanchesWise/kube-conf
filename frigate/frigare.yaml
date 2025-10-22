@@ -130,6 +130,10 @@ spec:
             secretKeyRef:
               name: frigate-secrets
               key: rtsp-password
+        - name: FRIGATE_HOST
+          value: "0.0.0.0"
+        - name: FRIGATE_PORT
+          value: "5000"
         - name: CONFIG_FILE
           value: "/config-base/config.yml"
         volumeMounts:
