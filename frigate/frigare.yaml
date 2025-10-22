@@ -29,6 +29,9 @@ data:
               roles:
                 - detect
                 - record
+              input_args: -avoid_negative_ts make_zero -fflags nobuffer -flags low_delay -strict experimental -fflags +genpts+discardcorrupt -use_wallclock_as_timestamps 1
+          output_args:
+            detect: -f rawvideo -pix_fmt yuv420p
         detect:
           enabled: true
           width: 1280
@@ -63,6 +66,7 @@ data:
     ffmpeg:
       hwaccel_args: []
       input_args: -avoid_negative_ts make_zero -fflags nobuffer -flags low_delay -strict experimental -fflags +genpts+discardcorrupt -use_wallclock_as_timestamps 1
+      
 ---
 # PVC для хранения видеоархива
 apiVersion: v1
