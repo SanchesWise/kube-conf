@@ -96,7 +96,7 @@ spec:
           cp /config-base/config.yml /config/config.yml
           mkdir -p /config/model_cache
           chown -R 1000:1000 /config
-          chmod -R 755 /writable-config
+          chmod -R 755 /config
         volumeMounts:
         - name: config-base
           mountPath: /config-base
