@@ -96,22 +96,6 @@ spec:
       labels:
         app: frigate
     spec:
-      initContainers:
-      - name: fix-shm-permissions
-        securityContext:
-          runAsUser: 0
-          runAsGroup: 0        
-        image: busybox:1.34
-        command:
-        - sh
-        - -c
-        - |
-          mkdir -p /dev/shm/logs
-          chown -R 1000:1000 /dev/shm/logs
-          chmod -R 755 /dev/shm/logs
-        volumeMounts:
-        - name: shm
-          mountPath: /dev/shm    
       containers:
       - name: frigate
         image: ghcr.io/blakeblackshear/frigate:stable
@@ -143,8 +127,6 @@ spec:
           readOnly: true
         - name: storage
           mountPath: /media/frigate
-        - name: shm
-          mountPath: /dev/shm
         - name: tmp-cache
           mountPath: /tmp/cache
         resources:
@@ -177,10 +159,6 @@ spec:
       - name: storage
         persistentVolumeClaim:
           claimName: frigate-storage
-      - name: shm
-        emptyDir:
-          medium: Memory
-          sizeLimit: "512Mi"
       - name: tmp-cache
         emptyDir:
           sizeLimit: "1Gi"
