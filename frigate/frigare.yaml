@@ -85,6 +85,27 @@ spec:
       labels:
         app: frigate
     spec:
+      initContainers:
+      - name: copy-config
+        image: busybox:1.34
+        command:
+        - sh
+        - -c
+        - |
+          mkdir -p /config
+          cp /config-base/config.yml /config/config.yml
+          mkdir -p /config/model_cache
+          chown -R 1000:1000 /config
+          chmod -R 755 /writable-config
+        volumeMounts:
+        - name: config-base
+          mountPath: /config-base
+          readOnly: true
+        - name: config
+          mountPath: /config
+        securityContext:
+          runAsUser: 0
+          runAsGroup: 0    
       containers:
       - name: frigate
         image: ghcr.io/blakeblackshear/frigate:stable
@@ -111,10 +132,8 @@ spec:
         - name: FRIGATE_PORT
           value: "5000"
         - name: CONFIG_FILE
-          value: "/config-base/config.yml"
+          value: "/config/config.yml"
         volumeMounts:
-        - name: config-base
-          mountPath: /config-base
         - name: config
           mountPath: /config        
         - name: storage
@@ -219,4 +238,4 @@ spec:
           service:
             name: frigate-service
             port:
-              number: 5000
+              number: 50001
