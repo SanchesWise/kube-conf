@@ -114,9 +114,6 @@ spec:
           mountPath: /dev/shm    
       containers:
       - name: frigate
-        securityContext:
-          runAsUser: 0
-          runAsGroup: 0      
         image: ghcr.io/blakeblackshear/frigate:stable
         imagePullPolicy: IfNotPresent
         ports:
