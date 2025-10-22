@@ -24,48 +24,20 @@ data:
       test_camera_1:
         enabled: true
         ffmpeg:
+          input_args: -rtsp_transport tcp
           inputs:
-            - path: rtsp://admin:12345@91.210.159.231:7011/Streaming/Channels/1?transportmode=unicast&profile=Profile_1
+            - path: rtsp://admin:12345@91.210.159.231:7011/Streaming/Channels/1
               roles:
                 - detect
-                - record
-              input_args: -avoid_negative_ts make_zero -fflags nobuffer -flags low_delay -strict experimental -fflags +genpts+discardcorrupt -use_wallclock_as_timestamps 1
-          output_args:
-            detect: -f rawvideo -pix_fmt yuv420p
         detect:
           enabled: true
-          width: 1280
-          height: 960
+          width: 640  # Уменьшаем разрешение для теста
+          height: 480
+          fps: 3
         record:
-          enabled: true
-          retain:
-            days: 7
-            mode: motion
+          enabled: false  # Отключаем запись для теста
         snapshots:
-          enabled: true
-          retain:
-            default: 10
-        objects:
-          track:
-            - person
-            - car
-          filters:
-            person:
-              min_area: 5000
-              max_area: 100000
-              threshold: 0.8
-    
-    # Настройки записи
-    record:
-      enabled: true
-      retain:
-        days: 7
-        mode: motion
-    
-    # Настройки для работы без GPU
-    ffmpeg:
-      hwaccel_args: []
-      input_args: -avoid_negative_ts make_zero -fflags nobuffer -flags low_delay -strict experimental -fflags +genpts+discardcorrupt -use_wallclock_as_timestamps 1
+          enabled: false  # Отключаем снимки для теста
       
 ---
 # PVC для хранения видеоархива
