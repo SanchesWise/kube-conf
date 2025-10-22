@@ -103,6 +103,8 @@ spec:
         ports:
         - containerPort: 5000
           name: web
+        - containerPort: 8971
+          name: web-auth
         - containerPort: 1935
           name: rtmp
         - containerPort: 8554
@@ -110,10 +112,6 @@ spec:
         - containerPort: 8555
           name: webrtc
         env:
-        - name: FRIGATE_PORT
-          value: "5000"
-        - name: FRIGATE_HOST
-          value: "0.0.0.0" 
         - name: FRIGATE_RTSP_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -143,13 +141,13 @@ spec:
         livenessProbe:
           httpGet:
             path: /
-            port: 5000
+            port: 8971
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /
-            port: 5000
+            port: 8971
           initialDelaySeconds: 5
           periodSeconds: 5        
       volumes:
@@ -187,6 +185,10 @@ spec:
     port: 5000
     targetPort: 5000
     nodePort: 30080
+  - name: web-auth
+    port: 8971
+    targetPort: 8971
+    nodePort: 30971
   - name: rtmp
     port: 1935
     targetPort: 1935
