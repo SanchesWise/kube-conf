@@ -118,10 +118,10 @@ spec:
               name: frigate-secrets
               key: rtsp-password
         - name: CONFIG_FILE
-          value: "/config/config.yml"
+          value: "/config_base/config.yml"
         volumeMounts:
-        - name: config
-          mountPath: /config
+        - name: config_base
+          mountPath: /config_base
         - name: storage
           mountPath: /media/frigate
         - name: tmp-cache
@@ -150,7 +150,7 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 5        
       volumes:
-      - name: config
+      - name: config_base
         configMap:
           name: frigate-config
       - name: storage
