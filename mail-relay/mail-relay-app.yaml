@@ -8,8 +8,8 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/SanchesWise/Kryukov_youtube'
-    path: gitlab/postfix/manifests
+    repoURL: 'https://github.com/SanchesWise/kube-konf'
+    path: mail-relay/postfix/manifests
     targetRevision: master
   destination:
     server: 'https://kubernetes.default.svc'
