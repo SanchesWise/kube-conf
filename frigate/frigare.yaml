@@ -12,32 +12,166 @@ metadata:
   namespace: frigate
 data:
   config.yml: |
-    mqtt:
+    mmqtt:
       enabled: false
-    
+
     detectors:
       cpu:
         type: cpu
-        num_threads: 2
-    
+        num_threads: 4
+
+    go2rtc:
+      streams:
+        garden_main_stream:
+          - rtsp://admin:12345@91.210.159.231:7011/Streaming/Channels/1
+        enter_main_stream:
+          - rtsp://admin:12345@91.210.159.231:7012/Streaming/Channels/1
+        home_main_stream:
+          - rtsp://admin:admin@91.210.159.231:7013/cam/realmonitor?channel=1&subtype=0
+
     cameras:
-      test_camera_1:
+      garden:
         enabled: true
         ffmpeg:
-          input_args: -rtsp_transport tcp
+          input_args: -rtsp_transport udp
           inputs:
-            - path: rtsp://admin:12345@91.210.159.231:7011/Streaming/Channels/1
+            - path: rtsp://127.0.0.1:8554/garden_main_stream
+            #- path: rtsp://admin:12345@91.210.159.231:7011/Streaming/Channels/1
+              input_args: preset-rtsp-restream
+              roles:
+                - record
+            - path: rtsp://admin:12345@91.210.159.231:7011/Streaming/Channels/2
+              input_args: preset-rtsp-generic
               roles:
                 - detect
+        live:
+          streams:
+            garden_main_stream: garden_main_stream
         detect:
           enabled: true
-          width: 640  # Уменьшаем разрешение для теста
-          height: 480
+          width: 320 
+          height: 200
           fps: 3
         record:
-          enabled: false  # Отключаем запись для теста
+          enabled: true 
         snapshots:
-          enabled: false  # Отключаем снимки для теста
+          enabled: true 
+        zones:
+          test1:
+            coordinates: 0.02,0.283,0.976,0.288,0.978,0.974,0.02,0.968
+            loitering_time: 0
+        objects:
+          track:
+            - person
+            - dog
+            - cat
+            - car
+        review:
+          alerts: {}
+          detections: {}
+
+      enter:
+        enabled: true
+        ffmpeg:
+          input_args: -rtsp_transport udp
+          inputs:
+            - path: rtsp://127.0.0.1:8554/enter_main_stream
+            #- path: rtsp://admin:12345@91.210.159.231:7012/Streaming/Channels/1
+              input_args: preset-rtsp-restream
+              roles:
+                - record
+            - path: rtsp://admin:12345@91.210.159.231:7012/Streaming/Channels/2
+              input_args: preset-rtsp-generic
+              roles:
+                - detect
+        live:
+          streams:
+            enter_main_stream: enter_main_stream
+        detect:
+          enabled: true
+          width: 320 
+          height: 200
+          fps: 3
+        record:
+          enabled: true 
+        snapshots:
+          enabled: true 
+        zones:
+          test2:
+            coordinates: 0.02,0.283,0.976,0.288,0.978,0.974,0.02,0.968
+            loitering_time: 0
+        objects:
+          track:
+            - person
+            - dog
+            - cat
+            - car
+        review:
+          alerts: {}
+          detections: {}
+
+      home:
+        enabled: true
+        ffmpeg:
+          input_args: -rtsp_transport udp
+          inputs:
+            - path: rtsp://127.0.0.1:8554/home_main_stream
+            #- path: rtsp://admin:admin@91.210.159.231:7013/cam/realmonitor?channel=1&subtype=0
+              input_args: preset-rtsp-restream
+              roles:
+                - record
+            - path: rtsp://admin:admin@91.210.159.231:7013/cam/realmonitor?channel=1&subtype=1
+              input_args: preset-rtsp-generic
+              roles:
+                - detect
+        live:
+          streams:
+            home_main_stream: home_main_stream
+        detect:
+          enabled: true
+          width: 320 
+          height: 200
+          fps: 3
+        record:
+          enabled: true 
+        snapshots:
+          enabled: true 
+        zones:
+          test3:
+            coordinates: 0.02,0.283,0.976,0.288,0.978,0.974,0.02,0.968
+            loitering_time: 0
+        objects:
+          track:
+            - person
+            - dog
+            - cat
+            - car
+        review:
+          alerts: {}
+          detections: {}
+
+    record:
+      enabled: true
+      retain:
+        days: 7
+        mode: all
+      alerts:
+        retain:
+          days: 7
+      detections:
+        retain:
+          days: 7
+
+    camera_groups:
+      main-group:
+        order: 1
+        icon: LuAperture
+        cameras:
+          - garden
+          - enter
+          - home
+    version: 0.16-0
+
       
 ---
 # PVC для хранения видеоархива
