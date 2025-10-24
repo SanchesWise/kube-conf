@@ -10,7 +10,7 @@ spec:
   source:
     repoURL: 'https://github.com/SanchesWise/kube-konf'
     path: mail-relay/postfix/manifests
-    targetRevision: master
+    targetRevision: main
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: mail-relay
