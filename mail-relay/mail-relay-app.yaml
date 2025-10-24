@@ -9,7 +9,7 @@ spec:
   project: default
   source:
     repoURL: 'https://github.com/SanchesWise/kube-conf'
-    path: mail-relay/postfix/manifests
+    path: manifests/postfix/manifests
     targetRevision: main
   destination:
     server: 'https://kubernetes.default.svc'
