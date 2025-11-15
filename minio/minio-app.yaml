@@ -23,8 +23,8 @@ spec:
           value: NodePort
         - name: image.tag
           value: RELEASE.2023-11-01T01-57-10Z-cpuv1
-        - name: mcImage.tag
-          value: RELEASE.2023-11-01T01-57-10Z-cpuv1
+        # - name: mcImage.tag
+        #   value: RELEASE.2023-11-01T01-57-10Z-cpuv1
         - name: replicas
           value: '3'
         - name: resources.requests.memory
