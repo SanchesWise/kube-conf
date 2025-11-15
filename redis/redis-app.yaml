@@ -10,7 +10,7 @@ spec:
   source:
     repoURL: 'https://charts.bitnami.com/bitnami'
     chart: bitnami/redis
-    targetRevision: 17.11.3
+    targetRevision: 18.4.0
     helm:
       parameters:
         - name: global.storageClass
