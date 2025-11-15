@@ -8,9 +8,9 @@ metadata:
 spec:
   project: utils
   source:
-    repoURL: 'https://charts.bitnami.com/bitnami'
-    chart: bitnami/redis
-    targetRevision: 18.4.0
+    repoURL: 'https://charts.pascaliske.dev'
+    chart: pascaliske/redis
+    targetRevision: 2.1.0
     helm:
       parameters:
         - name: global.storageClass
