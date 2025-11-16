@@ -1,0 +1,39 @@
+{{- if and (.Values.secrets) (not (.Values.secrets).existingSecret) }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ dig "secrets" "name" "" (.Values | merge (dict)) }}
+  namespace: {{ $.Values.namespaceOverride | default $.Release.Namespace | quote }}
+  {{- if $.Values.annotations }}
+  annotations:
+    {{ $.Values.annotations | toYaml | nindent 4 }}
+  {{- end }}
+  {{- if $.Values.labels }}
+  labels:
+    {{ $.Values.labels | toYaml | nindent 4 }}
+  {{- end }}
+type: Opaque
+stringData:
+  config.env: |-
+    export MINIO_ROOT_USER={{ .Values.secrets.accessKey | quote }}
+    export MINIO_ROOT_PASSWORD={{ .Values.secrets.secretKey | quote }}
+{{- end }}
+{{- if and (.Values.objectStore.configSecret) (not (.Values.objectStore.configSecret).existingSecret) }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ dig "objectStore" "configSecret" "name" "" (.Values | merge (dict)) }}
+  {{- if $.Values.annotations }}
+  annotations:
+    {{ $.Values.annotations | toYaml | nindent 4 }}
+  {{- end }}
+  {{- if $.Values.labels }}
+  labels:
+    {{ $.Values.labels | toYaml | nindent 4 }}
+  {{- end }}
+type: Opaque
+stringData:
+  config.env: |-
+    export MINIO_ROOT_USER={{ .Values.objectStore.configSecret.accessKey | quote }}
+    export MINIO_ROOT_PASSWORD={{ .Values.objectStore.configSecret.secretKey | quote }}
+{{- end }}
