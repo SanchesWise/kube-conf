@@ -58,7 +58,7 @@ spec:
         fsGroup: 1000
       containers:
       - name: minio
-        image: quay.io/minio/minio:RELEASE.2024-11-25T13-43-45Z
+        image: quay.io/minio/minio:RELEASE.2023-11-01T01-57-10Z-cpuv1
         command: ["/bin/sh", "-c"]
         args:
           - minio server --console-address :9001 http://minio-{0..2}.minio:9000/data
