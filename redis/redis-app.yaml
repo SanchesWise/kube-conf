@@ -1,52 +1,142 @@
-apiVersion: argoproj.io/v1alpha1
-kind: Application
+apiVersion: v1
+kind: Namespace
 metadata:
   name: redis
-  namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: redis
+  labels:
+    app: redis
 spec:
-  project: utils
-  source:
-    repoURL: 'https://charts.pascaliske.dev'
-    chart: pascaliske/redis
-    targetRevision: 8.0.3
-    helm:
-      parameters:
-        - name: global.storageClass
-          value: managed-nfs-storage
-        - name: global.redis.password
-          value: 'qUwTt8g9it'
-        - name: master.persistence.storageClass
-          value: managed-nfs-storage
-        - name: pdb.create
-          value: 'true'
-        - name: replica.persistence.storageClass
-          value: managed-nfs-storage
-        - name: replica.replicaCount
-          value: '1'
-#        - name: master.resources.requests.memory
-#          value: "256Mi"
-#        - name: master.resources.requests.cpu
-#          value: "0.5"
-#        - name: master.resources.limits.memory
-#          value: "256Mi"
-#        - name: master.resources.limits.cpu
-#          value: "0.5"
-#        - name: replica.resources.requests.memory
-#          value: "256Mi"
-#        - name: replica.resources.requests.cpu
-#          value: "0.5"
-#        - name: replica.resources.limits.memory
-#          value: "256Mi"
-#        - name: replica.resources.limits.cpu
-#          value: "0.5"
-  destination:
-    server: 'https://kubernetes.default.svc'
-    namespace: redis
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
+  clusterIP: None
+  ports:
+  - port: 6379
+    targetPort: 6379
+    name: redis
+  selector:
+    app: redis
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: redis
+spec:
+  serviceName: redis
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: redis
+        image: redis:7.2-alpine
+        command: ["redis-server"]
+        args: ["--requirepass", "password123", "--appendonly", "yes"]
+        ports:
+        - containerPort: 6379
+          name: redis
+        env:
+        - name: REDIS_PASSWORD
+          value: "password123"
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - redis-cli -a $REDIS_PASSWORD ping | grep PONG
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - redis-cli -a $REDIS_PASSWORD ping | grep PONG
+          initialDelaySeconds: 5
+          periodSeconds: 5
+  volumeClaimTemplates:
+  - metadata:
+      name: redis-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: managed-nfs-storage
+      resources:
+        requests:
+          storage: 100Gi
+
+
+
+# apiVersion: argoproj.io/v1alpha1
+# kind: Application
+# metadata:
+#   name: redis
+#   namespace: argocd
+#   finalizers:
+#     - resources-finalizer.argocd.argoproj.io
+# spec:
+#   project: utils
+#   source:
+#     repoURL: 'https://charts.pascaliske.dev'
+#     chart: pascaliske/redis
+#     targetRevision: 8.0.3
+#     helm:
+#       parameters:
+#         - name: global.storageClass
+#           value: managed-nfs-storage
+#         - name: global.redis.password
+#           value: 'qUwTt8g9it'
+#         - name: master.persistence.storageClass
+#           value: managed-nfs-storage
+#         - name: pdb.create
+#           value: 'true'
+#         - name: replica.persistence.storageClass
+#           value: managed-nfs-storage
+#         - name: replica.replicaCount
+#           value: '1'
+#         - name: master.resources.requests.memory
+#           value: "256Mi"
+#         - name: master.resources.requests.cpu
+#           value: "0.5" 
+#         - name: master.resources.limits.memory
+#           value: "256Mi"
+#         - name: master.resources.limits.cpu
+#           value: "0.5"
+#         - name: replica.resources.requests.memory
+#           value: "256Mi"
+#         - name: replica.resources.requests.cpu
+#           value: "0.5"
+#         - name: replica.resources.limits.memory
+#           value: "256Mi"
+#         - name: replica.resources.limits.cpu
+#           value: "0.5"
+#   destination:
+#     server: 'https://kubernetes.default.svc'
+#     namespace: redis
+#   syncPolicy:
+#     automated:
+#       prune: true
+#       selfHeal: true
+#     syncOptions:
+#       - CreateNamespace=true
