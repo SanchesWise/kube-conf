@@ -1,48 +1,180 @@
-apiVersion: argoproj.io/v1alpha1
-kind: Application
+apiVersion: v1
+kind: Namespace
 metadata:
   name: minio
-  namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: minio
+  labels:
+    app: minio
 spec:
-  project: utils
-  source:
-    repoURL: https://charts.min.io/
-    targetRevision: 5.4.0
-    chart: minio
-    helm:
-      parameters:
-        - name: consoleIngress.enabled
-          value: 'true'
-        - name: consoleIngress.hosts[0]
-          value: minio.ccsfarm.local
-        - name: consoleIngress.ingressClassName
-          value: nginx
-        - name: consoleService.type
-          value: NodePort
-        - name: image.tag
-          value: RELEASE.2023-11-01T01-57-10Z-cpuv1
-        # - name: mcImage.tag
-        #   value: RELEASE.2023-11-01T01-57-10Z-cpuv1
-        - name: replicas
-          value: '3'
-        - name: resources.requests.memory
-          value: 512Mi
-        - name: persistence.size
-          value: 20Gi
-        - name: persistence.storageClass
-          value: managed-nfs-storage
-        - name: rootPassword
-          value: password
-        - name: rootUser
-          value: admin
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: minio
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
+  clusterIP: None
+  ports:
+  - port: 9000
+    name: minio
+  - port: 9001
+    name: console
+  selector:
+    app: minio
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-console
+  namespace: minio
+  labels:
+    app: minio
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9001
+    targetPort: 9001
+    name: console
+  selector:
+    app: minio
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: minio
+  namespace: minio
+spec:
+  serviceName: minio
+  replicas: 3
+  selector:
+    matchLabels:
+      app: minio
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: minio
+        image: quay.io/minio/minio:RELEASE.2024-11-25T13-43-45Z
+        command: ["/bin/sh", "-c"]
+        args:
+          - minio server --console-address :9001 http://minio-{0..2}.minio:9000/data
+        env:
+        - name: MINIO_ROOT_USER
+          value: "admin"
+        - name: MINIO_ROOT_PASSWORD
+          value: "password"
+        - name: MINIO_DOMAIN
+          value: "minio.ccsfarm.local"
+        ports:
+        - containerPort: 9000
+          name: minio
+        - containerPort: 9001
+          name: console
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /minio/health/live
+            port: 9000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /minio/health/ready
+            port: 9000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: managed-nfs-storage
+      resources:
+        requests:
+          storage: 100Gi
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minio-console
+  namespace: minio
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-buffering: "on"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: minio.ccsfarm.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: minio-console
+            port:
+              number: 9001
+# Версия с хелмчартом
+# apiVersion: argoproj.io/v1alpha1
+# kind: Application
+# metadata:
+#   name: minio
+#   namespace: argocd
+#   finalizers:
+#     - resources-finalizer.argocd.argoproj.io
+# spec:
+#   project: utils
+#   source:
+#     repoURL: https://charts.min.io/
+#     targetRevision: 5.4.0
+#     chart: minio
+#     helm:
+#       parameters:
+#         - name: consoleIngress.enabled
+#           value: 'true'
+#         - name: consoleIngress.hosts[0]
+#           value: minio.ccsfarm.local
+#         - name: consoleIngress.ingressClassName
+#           value: nginx
+#         - name: consoleService.type
+#           value: NodePort
+#         - name: image.tag
+#           value: RELEASE.2023-11-01T01-57-10Z-cpuv1
+#         # - name: mcImage.tag
+#         #   value: RELEASE.2023-11-01T01-57-10Z-cpuv1
+#         - name: replicas
+#           value: '3'
+#         - name: resources.requests.memory
+#           value: 512Mi
+#         - name: persistence.size
+#           value: 20Gi
+#         - name: persistence.storageClass
+#           value: managed-nfs-storage
+#         - name: rootPassword
+#           value: password
+#         - name: rootUser
+#           value: admin
+#   destination:
+#     server: https://kubernetes.default.svc
+#     namespace: minio
+#   syncPolicy:
+#     automated:
+#       prune: true
+#       selfHeal: true
+#     syncOptions:
+#       - CreateNamespace=true
