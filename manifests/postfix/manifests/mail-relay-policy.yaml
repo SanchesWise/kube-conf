@@ -2,7 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: gitlab.mail-relay
-  namespace: gitlab
+  namespace: mail-relay
 spec:
   policyTypes:
   - Ingress
@@ -15,4 +15,4 @@ spec:
       - podSelector:
           matchLabels:
             app: sidekiq
-            release: gitlab
+            release: mail-relay
