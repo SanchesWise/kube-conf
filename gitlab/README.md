@@ -74,9 +74,6 @@ Gitlab registry пока тоже оставим за бортом. Для ег�
 или много телодвижений на серверах кубера.
 
 ```yaml
-certmanager:
-  install: false
-
 postgresql:
   install: false
 
@@ -89,8 +86,8 @@ prometheus:
 nginx-ingress:
   enabled: false
 
-registry:
-  enabled: false
+#registry:
+# enabled: false
 
 gitlab-runner:
   install: false
@@ -210,6 +207,21 @@ global:
 
 Основные параметры для подключения понятны из их названий. Пароль пользователя
 хранится в Secret `postgres-secret`.
+
+```shell
+cat <<EOF | sudo kubectl apply -f -
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+  namespace: gitlab  
+type: Opaque
+stringData:
+  POSTGRES_USER: sanches
+  POSTGRES_PASSWORD: password
+EOF
+```
+
 
 ```yaml
 global:

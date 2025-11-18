@@ -33,12 +33,12 @@ global:
       enabled: true
       secret: gitlab-redis
       key: redis-password
-    host: redis
+    host: redis.redis.svc.cluster.local
     namespace: redis
     port: 6379
 
   psql:
-    host: postgres-np
+    host: postgres-np.postgres.svc.cluster.local
     namespace: postgres
     port: 5432
     database: gitlab
@@ -59,7 +59,7 @@ global:
   hosts:
     domain: ccsfarm.local
     https: false
-    externalIP: 10.10.2.110
+    externalIP: 10.10.2.111
 
   appConfig:
     # https://docs.gitlab.com/charts/advanced/external-object-storage/#lfs-artifacts-uploads-packages-external-diffs-terraform-state-dependency-proxy
