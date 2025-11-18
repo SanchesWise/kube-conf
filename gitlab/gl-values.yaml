@@ -52,7 +52,7 @@ global:
 
   ingress:
     configureCertmanager: false
-    class: system-ingress
+    class: nginx
     provider: nginx
     #installCRDs: false 
     tls:
