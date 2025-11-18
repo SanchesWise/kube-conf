@@ -47,14 +47,9 @@ global:
       useSecret: true
       secret: postgres-secret
       key: POSTGRES_PASSWORD
+    preparedStatements: false
     sslmode: disable
-    connectTimeout: 10
-    keepalives: true
-    keepalivesIdle: 60
-    keepalivesInterval: 10
-    keepalivesCount: 5
-    tcpUserTimeout: 2000
-    
+
   ingress:
     configureCertmanager: false
     class: system-ingress
