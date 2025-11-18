@@ -4,6 +4,8 @@ postgresql:
 redis:
   install: false
 
+installCertmanager: false
+
 prometheus:
   install: false
 
