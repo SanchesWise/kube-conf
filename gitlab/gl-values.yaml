@@ -1,6 +1,9 @@
 postgresql:
   install: false
 
+certmanager:
+  install: false  
+
 redis:
   install: false
 
