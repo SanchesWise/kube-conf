@@ -12,7 +12,7 @@ spec:
   clusterIP: None
   selector:
     app: postgres
-    version: "15.3"
+    version: "16.0"
 ---
 apiVersion: v1
 kind: Service
@@ -28,7 +28,7 @@ spec:
   type: ClusterIP
   selector:
     app: postgres
-    version: "15.3"
+    version: "16.0"
 ---
 apiVersion: v1
 kind: Secret
@@ -47,7 +47,7 @@ spec:
   selector:
     matchLabels:
       app: postgres 
-      version: "15.3"
+      version: "16.0"
   serviceName: postgres-headless
   replicas: 1 
   minReadySeconds: 10 
@@ -55,7 +55,7 @@ spec:
     metadata:
       labels:
         app: postgres
-        version: "15.3"
+        version: "16.0"
     spec:
       terminationGracePeriodSeconds: 30
       containers:
