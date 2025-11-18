@@ -21,10 +21,6 @@ global:
     enabled: false
   # Включаем Community Edition
   edition: ce
-  
-  ingress:
-    configureCertmanager: false
-    installCRDs: false # Добавьте эту строку  
 
   initialRootPassword:
     key: password
@@ -54,6 +50,7 @@ global:
     configureCertmanager: false
     class: system-ingress
     provider: nginx
+    installCRDs: false 
     tls:
       enabled: false
 
