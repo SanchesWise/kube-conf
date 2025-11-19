@@ -12,7 +12,7 @@ metadata:
   namespace: frigate
 data:
   config.yml: |
-    mmqtt:
+    mqtt:
       enabled: false
 
     detectors:

@@ -324,6 +324,24 @@ stringData:
 EOF
 ```
 
+Дополнительный сервис для minio, который сидит в другом неймспейсе 
+```shell
+sudo kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: gitlab
+spec:
+  type: ExternalName
+  externalName: minio.minio.svc.cluster.local
+  ports:
+  - port: 9000
+    targetPort: 9000
+EOF
+```
+
+
 Приложения, использующие хранилище объектов:
 
 ```yaml
