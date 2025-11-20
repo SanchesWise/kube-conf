@@ -1,0 +1,153 @@
+---
+# 1. Создаем отдельный Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nexus
+
+---
+# 2. Запрашиваем диск (NFS)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nexus-data
+  namespace: nexus
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: managed-nfs-storage
+  resources:
+    requests:
+      storage: 200Gi
+
+---
+# 3. Основное приложение (Deployment)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nexus
+  namespace: nexus
+  labels:
+    app: nexus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nexus
+  template:
+    metadata:
+      labels:
+        app: nexus
+    spec:
+      # Init-контейнер для исправления прав доступа на NFS томе
+      initContainers:
+        - name: fix-permissions
+          image: busybox:1.36
+          command: ["sh", "-c", "chown -R 200:200 /nexus-data && chmod -R 777 /nexus-data"]
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: nexus-data
+              mountPath: /nexus-data
+      
+      containers:
+        - name: nexus
+          image: sonatype/nexus3:3.70.1
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 200
+            runAsGroup: 200
+          ports:
+            - containerPort: 8081
+              name: ui
+            - containerPort: 8082
+              name: docker-hosted
+          # Ресурсы: Nexus требует много Java Heap
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "500m"
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
+          volumeMounts:
+            - name: nexus-data
+              mountPath: /nexus-data
+          # Пробы живучести (Nexus долго стартует)
+          livenessProbe:
+            httpGet:
+              path: /service/rest/v1/status
+              port: 8081
+            initialDelaySeconds: 90
+            periodSeconds: 30
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /service/rest/v1/status
+              port: 8081
+            initialDelaySeconds: 90
+            periodSeconds: 30
+            failureThreshold: 6
+
+      volumes:
+        - name: nexus-data
+          persistentVolumeClaim:
+            claimName: nexus-data
+
+---
+# 4. Сервис (Service)
+apiVersion: v1
+kind: Service
+metadata:
+  name: nexus-service
+  namespace: nexus
+spec:
+  selector:
+    app: nexus
+  type: ClusterIP
+  ports:
+    - name: ui
+      port: 8081
+      targetPort: 8081
+    - name: docker
+      port: 8082
+      targetPort: 8082
+
+---
+# 5. Ingress (Маршрутизация)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nexus-ingress
+  namespace: nexus
+  annotations:
+    # Критически важные настройки для Docker Registry
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "900"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "900"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+spec:
+  ingressClassName: nginx
+  rules:
+    # Хост для UI админки
+    - host: nexus.ccsfarm.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nexus-service
+                port:
+                  number: 8081
+    # Хост для команд docker push/pull
+    - host: registry-nexus.ccsfarm.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nexus-service
+                port:
+                  number: 8082
