@@ -12,7 +12,7 @@ stringData:
   
   # Подключение к Postgres
   # Формат: postgresql://user:password@host:port/dbname?sslmode=disable
-  postgres-conn: "host=postgres-np.postgres.svc.cluster.local port=5432 user=gitlab password=FeerDe3o dbname=gitlab sslmode=disable"
+  postgres-conn: "host=postgres-np.postgres.svc.cluster.local port=5432 user=exporter password=FeerDe3o dbname=gitlab sslmode=disable"
 
 ---
 # -------------------
