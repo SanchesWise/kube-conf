@@ -39,11 +39,13 @@ runners:
       [runners.kubernetes]
         image = "registry.red-soft.ru/ubi8/ubi-micro"
         # helper_image = "if use custom helper"
-       [[runners.kubernetes.volumes.secret]]
+        [[runners.kubernetes.volumes.secret]]
           name = "custom-ca-certs"
-          mount_path = "/etc/ssl/certs/ccsfarm-ca.crt"
-          sub_path = "ccsfarm-ca.crt"
-          read_only = true        
+          mount_path = "/custom_certs"
+          read_only = true 
+        environment = [
+          "SSL_CERT_FILE=/custom-certs/ccsfarm-ca.crt"
+        ]                 
       [runners.cache]
         Type = "s3"
         Path = ""
