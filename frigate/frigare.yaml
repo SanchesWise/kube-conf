@@ -362,6 +362,10 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - frigate.ccsfarm.local
+    secretName: frigate-tls-secret   
   rules:
   - host: frigate.ccsfarm.local
     http:

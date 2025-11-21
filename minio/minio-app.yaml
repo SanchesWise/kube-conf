@@ -122,6 +122,10 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - minio.ccsfarm.local
+    secretName: minio-tls-secret   
   rules:
   - host: minio.ccsfarm.local
     http:

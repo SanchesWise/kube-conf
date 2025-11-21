@@ -56,7 +56,8 @@ global:
     provider: nginx
     #installCRDs: false 
     tls:
-      enabled: false
+      enabled: true
+      secretName: gitlab-tls-secret
 
   hosts:
     domain: ccsfarm.local

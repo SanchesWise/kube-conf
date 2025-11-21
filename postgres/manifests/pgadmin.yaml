@@ -112,6 +112,10 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "300"  
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - pg.ccsfarm.local
+    secretName: pgadmin-tls-secret   
   rules:
     - host: pg.ccsfarm.local
       http:
