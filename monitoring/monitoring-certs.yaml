@@ -1,0 +1,27 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: grafana-tls
+  namespace: monitoring # Мы создадим этот namespace позже
+spec:
+  secretName: grafana-tls-secret
+  dnsNames:
+    - grafana.ccsfarm.local
+  issuerRef:
+    name: ccsfarm-ca-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: alertmanager-tls
+  namespace: monitoring
+spec:
+  secretName: alertmanager-tls-secret
+  dnsNames:
+    - alertmanager.ccsfarm.local
+  issuerRef:
+    name: ccsfarm-ca-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io

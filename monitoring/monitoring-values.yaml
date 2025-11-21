@@ -1,0 +1,79 @@
+grafana:
+  # Пароль администратора (по умолчанию admin / prom-operator)
+  # Лучше задать свой
+  adminPassword: "admin" 
+  
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - grafana.ccsfarm.local
+    tls:
+      - secretName: grafana-tls-secret # Наш сертификат
+        hosts:
+          - grafana.ccsfarm.local
+  
+  persistence:
+    enabled: true
+    storageClassName: managed-nfs-storage
+    size: 10Gi
+
+  # Дополнительные плагины (опционально)
+  plugins:
+    - grafana-piechart-panel
+
+# 2. Настройки Prometheus
+prometheus:
+  prometheusSpec:
+    # Сколько хранить метрики (по умолчанию 10 дней, ставим 30)
+    retention: 30d
+    
+    # Хранилище для метрик
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: managed-nfs-storage
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 50Gi
+    
+    # ВАЖНО: Разрешаем Прометеусу искать ServiceMonitor в других неймспейсах
+    # Без этого он не увидит Redis/Postgres/Cert-manager
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector: {}
+    serviceMonitorNamespaceSelector: {}
+
+# 3. Alertmanager (Уведомления)
+alertmanager:
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - alertmanager.ccsfarm.local
+    tls:
+      - secretName: alertmanager-tls-secret
+        hosts:
+          - alertmanager.ccsfarm.local
+  alertmanagerSpec:
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: managed-nfs-storage
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 5Gi
+
+# 4. Мониторинг компонентов K8s
+# Отключаем то, что может конфликтовать в облаках, но для on-prem (RED OS) включаем всё
+kubeControllerManager:
+  enabled: true
+kubeEtcd:
+  enabled: true
+kubeScheduler:
+  enabled: true
+coreDns:
+  enabled: true # Мониторинг DNS
+kubelet:
+  enabled: true # Мониторинг контейнеров
