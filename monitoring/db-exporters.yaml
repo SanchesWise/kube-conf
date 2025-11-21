@@ -8,11 +8,11 @@ type: Opaque
 stringData:
   # Подключение к Redis (имя сервиса:порт)
   redis-addr: "redis.redis.svc.cluster.local:6379"
-  redis-password: "YOUR_REDIS_PASSWORD" 
+  redis-password: "password123" 
   
   # Подключение к Postgres
   # Формат: postgresql://user:password@host:port/dbname?sslmode=disable
-  postgres-conn: "postgresql://postgres:YOUR_POSTGRES_PASSWORD@postgres-np.postgres.svc.cluster.local:5432/postgres?sslmode=disable"
+  postgres-conn: "postgresql://sanches:password@postgres-np.postgres.svc.cluster.local:5432/postgres?sslmode=disable"
 
 ---
 # -------------------
