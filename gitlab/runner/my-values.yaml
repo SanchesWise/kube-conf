@@ -44,7 +44,7 @@ runners:
           mount_path = "/custom-certs"
           read_only = true 
         environment = [
-          "SSL_CERT_FILE=/custom-certs/ccsfarm-ca.crt"
+          "SSL_CERT_FILE=/custom-certs/gitlab.ccsfarm.local.crt"
         ]                 
       [runners.cache]
         Type = "s3"
@@ -54,7 +54,7 @@ runners:
           ServerAddress = "minio.minio.svc.cluster.local:9000"
           BucketName = "dev-runner-cache"
           BucketLocation = "us-east-1"
-          Insecure = false
+          Insecure = true
           AuthenticationType = "access-key"
   cache:
     secretName: dev-gitlab-runner
