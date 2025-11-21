@@ -28,7 +28,10 @@ metrics:
   portName: metrics
   port: 9252
   serviceMonitor:
-    enabled: false
+    enabled: true
+    labels:
+      release: kube-prometheus-stack
+    interval: "30s"      
 service:
   enabled: false
 runners:
