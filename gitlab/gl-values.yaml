@@ -61,7 +61,7 @@ global:
 
   hosts:
     domain: ccsfarm.local
-    https: false
+    https: true
     externalIP: 10.10.2.111
 
   appConfig:
