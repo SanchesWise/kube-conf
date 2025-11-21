@@ -12,7 +12,7 @@ stringData:
   
   # Подключение к Postgres
   # Формат: postgresql://user:password@host:port/dbname?sslmode=disable
-  postgres-conn: "postgresql://sanches:FeerDe3o@postgres-np.postgres.svc.cluster.local:5432/postgres?sslmode=disable"
+  postgres-conn: "host=postgres-np.postgres.svc.cluster.local port=5432 user=sanches password=FeerDe3o dbname=postgres sslmode=disable"
 
 ---
 # -------------------
