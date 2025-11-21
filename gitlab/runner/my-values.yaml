@@ -41,7 +41,7 @@ runners:
         # helper_image = "if use custom helper"
         [[runners.kubernetes.volumes.secret]]
           name = "custom-ca-certs"
-          mount_path = "/custom_certs"
+          mount_path = "/custom-certs"
           read_only = true 
         environment = [
           "SSL_CERT_FILE=/custom-certs/ccsfarm-ca.crt"
