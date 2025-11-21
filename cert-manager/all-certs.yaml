@@ -1,0 +1,91 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gitlab-bundle-tls
+  namespace: gitlab 
+spec:
+  secretName: gitlab-tls-secret
+  dnsNames:
+    - gitlab.ccsfarm.local
+    - registry.ccsfarm.local
+    - kas.ccsfarm.local
+  issuerRef:
+    name: ccsfarm-ca-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+
+---
+# ---------------------------------------------------------
+# 2. MinIO Console & API
+# Namespace: minio (согласно сводке minio-0.minio...)
+# ---------------------------------------------------------
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: minio-tls
+  namespace: minio 
+spec:
+  secretName: minio-tls-secret
+  dnsNames:
+    - minio.ccsfarm.local
+  issuerRef:
+    name: ccsfarm-ca-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+
+---
+# ---------------------------------------------------------
+# 3. ArgoCD UI
+# Namespace: argocd
+# ---------------------------------------------------------
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: argocd-tls
+  namespace: argocd 
+spec:
+  secretName: argocd-tls-secret
+  dnsNames:
+    - argocd.ccsfarm.local
+  issuerRef:
+    name: ccsfarm-ca-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+
+---
+# ---------------------------------------------------------
+# 4. PgAdmin (PostgreSQL UI)
+# Namespace: postgres (предположительно)
+# ---------------------------------------------------------
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: pgadmin-tls
+  namespace: postgres 
+spec:
+  secretName: pgadmin-tls-secret
+  dnsNames:
+    - pg.ccsfarm.local
+  issuerRef:
+    name: ccsfarm-ca-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+
+---
+# ---------------------------------------------------------
+# 5. Frigate (NVR)
+# Namespace: frigate (или monitoring? Проверьте)
+# ---------------------------------------------------------
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: frigate-tls
+  namespace: frigate 
+spec:
+  secretName: frigate-tls-secret
+  dnsNames:
+    - frigate.ccsfarm.local
+  issuerRef:
+    name: ccsfarm-ca-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io

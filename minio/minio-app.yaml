@@ -61,7 +61,6 @@ spec:
         image: minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
         command: ["/bin/sh", "-c"]
         args:
-        args:
           - |
             minio server --console-address :9001 \
             http://minio-0.minio.minio.svc.cluster.local:9000/data \
