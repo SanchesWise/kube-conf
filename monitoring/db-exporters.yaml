@@ -101,7 +101,7 @@ spec:
       - name: postgres-exporter
         image: prometheuscommunity/postgres-exporter:v0.15.0
         env:
-        - name: DATA_SOURCE_URI
+        - name: DATA_SOURCE_NAME
           valueFrom: { secretKeyRef: { name: db-exporter-secrets, key: postgres-conn } }
         ports:
         - containerPort: 9187
