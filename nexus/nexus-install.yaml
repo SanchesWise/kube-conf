@@ -128,6 +128,11 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-buffering: "off"
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - registry-nexus.ccsfarm.local
+        - nexus.ccsfarm.local
+      secretName: nexus-tls-secret # Тот секрет, который создал cert-manager  
   rules:
     # Хост для UI админки
     - host: nexus.ccsfarm.local

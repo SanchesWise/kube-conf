@@ -1,0 +1,14 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nexus-tls
+  namespace: nexus # ВАЖНО: Namespace где стоит Nexus
+spec:
+  secretName: nexus-tls-secret # Куда cert-manager положит готовый сертификат
+  dnsNames:
+    - registry-nexus.ccsfarm.local
+    - nexus.ccsfarm.local
+  issuerRef:
+    name: ccsfarm-ca-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
