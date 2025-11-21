@@ -1,0 +1,32 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: gitlab-monitor
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: gitlab # Стандартный лейбл GitLab
+  namespaceSelector:
+    matchNames:
+      - gitlab
+  endpoints:
+  # 1. Основные метрики GitLab (Rails/Unicorn/Puma)
+  - port: http-webservice
+    path: /-/metrics
+    interval: 30s
+    scheme: http
+  
+  # 2. Метрики Workhorse (обработка git-запросов)
+  - port: http-workhorse
+    path: /metrics
+    interval: 30s
+    scheme: http
+  
+  # 3. Метрики Sidekiq (очереди задач)
+  # Обычно доступны на том же порту, что и веб-сервис, но иногда отдельно
+  
+  # 4. Gitaly (если он доступен как сервис)
+  # Обычно требует отдельного ServiceMonitor, если Gitaly вынесен в отдельный под
