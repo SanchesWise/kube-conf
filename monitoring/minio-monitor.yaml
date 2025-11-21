@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: minio-monitor
+  namespace: monitoring # Кладем сам монитор в неймспейс мониторинга
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: minio # ⚠️ Убедитесь, что у сервиса MinIO есть этот лейбл (или app.kubernetes.io/name: minio)
+  namespaceSelector:
+    matchNames:
+      - minio # Неймспейс, где стоит MinIO
+  endpoints:
+  - port: minio # Имя порта сервиса (обычно http или service)
+    path: /minio/v2/metrics/cluster
+    interval: 30s
+    scheme: http
