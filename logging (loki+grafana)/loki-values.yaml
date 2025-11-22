@@ -2,21 +2,23 @@ deploymentMode: SimpleScalable
 
 loki:
   auth_enabled: false
+
   memberlist:
     service: loki-memberlist
+
   common:
-    replication_factor: 1
+    replication_factor: 2
     path_prefix: /var/loki
     ring:
-      instance_addr_type: ip  # Использовать IP пода вместо Hostname
+      instance_addr_type: ip
       kvstore:
-        store: memberlist 
+        store: memberlist
     storage:
       s3:
         endpoint: http://minio.minio.svc.cluster.local:9000
         bucketnames: loki-data
         access_key_id: loki
-        secret_access_key: FeerDe3o 
+        secret_access_key: FeerDe3o
         s3forcepathstyle: true
         insecure: true
 
@@ -47,54 +49,61 @@ loki:
     
   limits_config:
     retention_period: 30d
-  extraEnv:
-    - name: POD_IP
-      valueFrom:
-        fieldRef:
-          fieldPath: status.podIP
-# --- КОМПОНЕНТЫ (Simple Scalable) ---
 
-# 1. WRITE (Запись логов)
+# --- КОМПОНЕНТЫ (Явное указание IP) ---
+
 write:
-  replicas: 1
+  replicas: 2
   persistence:
     enabled: true
     storageClass: managed-nfs-storage
     size: 10Gi
+  # 👇 1. Пробрасываем IP
   extraEnv:
     - name: POD_IP
       valueFrom:
         fieldRef:
           fieldPath: status.podIP
-# 2. READ (Чтение/Поиск)
+  # 👇 2. Заставляем использовать IP как имя
+  extraArgs:
+    - '-common.ring.instance-addr=$(POD_IP)'
+    - '-common.instance-addr=$(POD_IP)'
+
 read:
-  replicas: 1
+  replicas: 2
   persistence:
-    # Read-нодам нужен диск только для кэша, можно небольшой
     enabled: true
     storageClass: managed-nfs-storage
     size: 10Gi
+  # 👇 То же самое для Read
   extraEnv:
     - name: POD_IP
       valueFrom:
         fieldRef:
           fieldPath: status.podIP
-# 3. BACKEND (Компакция, управление)
+  extraArgs:
+    - '-common.ring.instance-addr=$(POD_IP)'
+    - '-common.instance-addr=$(POD_IP)'
+
 backend:
   replicas: 2
   persistence:
     enabled: true
     storageClass: managed-nfs-storage
     size: 10Gi
+  # 👇 То же самое для Backend
   extraEnv:
     - name: POD_IP
       valueFrom:
         fieldRef:
           fieldPath: status.podIP
-# 4. GATEWAY (Nginx - единая точка входа)
+  extraArgs:
+    - '-common.ring.instance-addr=$(POD_IP)'
+    - '-common.instance-addr=$(POD_IP)'
+
 gateway:
   enabled: true
-  replicas: 1
+  replicas: 2
 
 
 # Отключаем встроенный мониторинг, если у вас уже есть свой prometheus-stack
