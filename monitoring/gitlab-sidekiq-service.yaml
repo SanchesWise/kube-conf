@@ -1,0 +1,27 @@
+
+# Поды есть, но отсутствует Service (сетевая абстракция), который объединяет эти поды. Стандартный ServiceMonitor в Prometheus работает именно с сервисами (Services), а не напрямую с подами.
+# Это нормальная ситуация. Sidekiq — это "воркер" (он сам забирает задачи из Redis), поэтому к нему редко обращаются извне, и сервис для трафика ему не нужен. Но сервис нужен нам для мониторинга.
+# Чтобы начать собирать метрики с Sidekiq, нам нужно сделать два шага:
+# Создать Service (фиктивный, просто для обнаружения подов).
+# Создать ServiceMonitor.
+# Шаг 1. Создаем Service для Sidekiq
+# Мы создадим "Headless" сервис (ClusterIP: None). Он не тратит IP-адрес, но создает DNS-записи и Endpoints, что и нужно Прометеусу.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitlab-sidekiq-monitor-svc
+  namespace: gitlab
+  labels:
+    app: sidekiq
+    release: gitlab
+spec:
+  clusterIP: None # Headless mode (нам нужен только дискавери)
+  ports:
+    - name: http-metrics
+      port: 3807
+      targetPort: 3807
+      protocol: TCP
+  selector:
+    app: sidekiq
+    release: gitlab
