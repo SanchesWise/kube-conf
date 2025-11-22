@@ -45,7 +45,7 @@ loki:
     retention_period: 30d # Храним логи 30 дней
 
 # Настройка диска для временного буфера (WAL)
-singleBinary:
+singleScalable:
   replicas: 1
   persistence:
     enabled: true

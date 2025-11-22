@@ -193,8 +193,9 @@ helm repo add grafana https://grafana.github.io/helm-charts
 helm repo update
 
 # Устанавливаем в namespace monitoring
+kubectl create ns log
 helm upgrade --install loki grafana/loki \
-  --namespace monitoring \
+  --namespace log \
   -f loki-values.yaml
 ```
 
