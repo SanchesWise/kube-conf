@@ -8,13 +8,13 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: gitlab # Стандартный лейбл GitLab
+      app: webservice # Стандартный лейбл GitLab
   namespaceSelector:
     matchNames:
       - gitlab
   endpoints:
   # 1. Основные метрики GitLab (Rails/Unicorn/Puma)
-  - port: http-webservice
+  - port: http-metrics-ws
     path: /-/metrics
     interval: 30s
     scheme: http
