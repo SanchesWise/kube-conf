@@ -17,7 +17,9 @@ loki:
         secret_access_key: FeerDe3o # 👈 ПРОВЕРЬТЕ ПАРОЛЬ
         s3forcepathstyle: true
         insecure: true
-
+  memberlist:
+    join_members:
+      - 127.0.0.1
   schemaConfig:
     configs:
       - from: 2024-04-01
