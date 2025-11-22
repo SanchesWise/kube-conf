@@ -47,7 +47,11 @@ loki:
     
   limits_config:
     retention_period: 30d
-
+  extraEnv:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
 # --- КОМПОНЕНТЫ (Simple Scalable) ---
 
 # 1. WRITE (Запись логов)
@@ -57,7 +61,11 @@ write:
     enabled: true
     storageClass: managed-nfs-storage
     size: 10Gi
-
+  extraEnv:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
 # 2. READ (Чтение/Поиск)
 read:
   replicas: 1
@@ -66,7 +74,11 @@ read:
     enabled: true
     storageClass: managed-nfs-storage
     size: 10Gi
-
+  extraEnv:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
 # 3. BACKEND (Компакция, управление)
 backend:
   replicas: 2
@@ -74,7 +86,11 @@ backend:
     enabled: true
     storageClass: managed-nfs-storage
     size: 10Gi
-
+  extraEnv:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
 # 4. GATEWAY (Nginx - единая точка входа)
 gateway:
   enabled: true
