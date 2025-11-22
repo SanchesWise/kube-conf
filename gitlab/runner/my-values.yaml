@@ -29,6 +29,7 @@ metrics:
   port: 9252
   serviceMonitor:
     enabled: true
+    namespace: monitoring
     labels:
       release: kube-prometheus-stack
     interval: "30s"      

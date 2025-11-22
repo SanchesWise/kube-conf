@@ -336,7 +336,7 @@ Bash
 
 kubectl apply -f cert-manager-monitor.yaml
 
-Шаг 6. Настройка Grafana (Дашборды)
+# Шаг 6. Настройка Grafana (Дашборды)
 
 Теперь самое интересное.
 
@@ -354,3 +354,236 @@ Kube-state-metrics: Показывает, если поды падают (CrashL
 DB Exporters: Показывают внутренности Postgres и Redis (кол-во соединений, кэш-хиты).
 Cert-Manager Monitor: Позволит настроить алерт "Сертификат истекает через 7 дней".
 Если установка пройдет успешно, можно будет настроить Alertmanager, чтобы он слал уведомления в Telegram при падении подов или нехватке места.
+
+
+# Prometheus
+Это отличная мысль. Доступ к веб-интерфейсу Prometheus очень полезен для отладки: там можно проверять статус таргетов (Targets), смотреть, какие метрики приходят, и писать сырые PromQL запросы перед тем, как рисовать их в Grafana.
+Так как мы устанавливали стек через Helm, сервис Prometheus уже создан, но он доступен только внутри кластера. Нам нужно создать для него Certificate (для HTTPS) и Ingress.
+Шаг 1. Узнаем точное имя сервиса
+Обычно при установке чарта kube-prometheus-stack сервис называется kube-prometheus-stack-prometheus. Но лучше проверить.
+Выполните команду:
+code
+Bash
+kubectl get svc -n monitoring | grep prometheus
+Ищите сервис, который слушает порт 9090. Скорее всего, он называется kube-prometheus-stack-prometheus. Если имя отличается, поправьте его в манифесте ниже.
+Шаг 2. Создаем манифест (prometheus-ingress.yaml)
+Создайте файл prometheus-ingress.yaml. Этот манифест сделает две вещи:
+Запросит сертификат у нашего CA для prom.ccsfarm.local.
+Настроит Nginx Ingress на перенаправление трафика.
+code
+Yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: prometheus-tls
+  namespace: monitoring
+spec:
+  secretName: prometheus-tls-secret
+  dnsNames:
+    - prom.ccsfarm.local
+  issuerRef:
+    name: ccsfarm-ca-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: prometheus-ingress
+  namespace: monitoring
+  annotations:
+    # Опционально: увеличиваем размер тела запроса (иногда нужно для больших запросов API)
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - prom.ccsfarm.local
+      secretName: prometheus-tls-secret
+  rules:
+    - host: prom.ccsfarm.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                # ⚠️ ПРОВЕРЬТЕ ИМЯ СЕРВИСА (см. Шаг 1)
+                name: kube-prometheus-stack-prometheus
+                port:
+                  number: 9090
+Шаг 3. Применяем и проверяем
+Примените манифест:
+code
+Bash
+kubectl apply -f prometheus-ingress.yaml
+Подождите немного, пока cert-manager выпустит сертификат. Проверить статус можно командой:
+code
+Bash
+kubectl get certificate -n monitoring prometheus-tls
+(Должно быть READY: True)
+Откройте в браузере:
+https://prom.ccsfarm.local
+🔐 Опционально: Добавляем пароль (Basic Auth)
+Важный момент: У Prometheus "из коробки" нет авторизации. Если вы откроете его наружу, любой в вашей сети сможет зайти и смотреть метрики (или даже удалить их через API, если включен Admin API).
+Хотя у вас закрытый периметр (VPN), хорошей практикой считается закрыть его хотя бы простым паролем через Nginx.
+Как добавить Basic Auth:
+Установите утилиту htpasswd (если нет):
+sudo dnf install httpd-tools (для RED OS) или apt install apache2-utils.
+Создайте файл с паролем:
+code
+Bash
+# Создаем файл auth с пользователем admin
+htpasswd -c auth admin
+# (введите пароль)
+Создайте секрет в Kubernetes:
+code
+Bash
+kubectl create secret generic prometheus-basic-auth \
+  --namespace monitoring \
+  --from-file=auth
+Обновите Ingress (prometheus-ingress.yaml):
+Добавьте аннотации в секцию metadata:
+code
+Yaml
+metadata:
+  name: prometheus-ingress
+  namespace: monitoring
+  annotations:
+    # --- Блок авторизации ---
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: prometheus-basic-auth
+    nginx.ingress.kubernetes.io/auth-realm: 'Authentication Required - Prometheus'
+    # ------------------------
+Примените изменения:
+code
+Bash
+kubectl apply -f prometheus-ingress.yaml
+Теперь при входе на prom.ccsfarm.local браузер спросит логин и пароль.
+
+
+1. GitLab Runner
+Раннер уже имеет встроенный HTTP-сервер метрик (порт 9252), нам нужно просто включить создание ServiceMonitor в его Helm-чарте.
+Действия:
+Откройте ваш values.yaml для gitlab-runner.
+Найдите секцию metrics и приведите её к такому виду:
+code
+Yaml
+metrics:
+  enabled: true
+  portName: metrics
+  port: 9252
+  serviceMonitor:
+    enabled: true # Включаем создание монитора
+    
+    # ВАЖНО: Метка должна совпадать с именем релиза прометеуса
+    # (по умолчанию это kube-prometheus-stack)
+    labels:
+      release: kube-prometheus-stack
+    
+    # Интервал сбора
+    interval: "30s"
+Примените изменения:
+code
+Bash
+helm upgrade --install gitlab-runner gitlab/gitlab-runner -f values.yaml -n gitlab
+2. MinIO (S3)
+С MinIO чуть сложнее. По умолчанию метрики MinIO защищены токеном. Чтобы не возиться с генерацией JWT-токенов для Прометеуса, проще всего разрешить публичные метрики (это безопасно, так как доступ только внутри кластера).
+Шаг А: Настройка MinIO (через ArgoCD/Manifest)
+Вам нужно добавить переменную окружения в Deployment/StatefulSet вашего MinIO.
+Переменная: MINIO_PROMETHEUS_AUTH_TYPE
+Значение: "public"
+Если вы используете Helm или ArgoCD, найдите секцию env и добавьте туда:
+code
+Yaml
+env:
+  - name: MINIO_PROMETHEUS_AUTH_TYPE
+    value: "public"
+После этого MinIO перезапустится.
+Шаг Б: Создание ServiceMonitor
+Теперь создадим манифест, который скажет Прометеусу забирать метрики.
+Создайте файл minio-monitor.yaml:
+code
+Yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: minio-monitor
+  namespace: monitoring # Кладем сам монитор в неймспейс мониторинга
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: minio # ⚠️ Убедитесь, что у сервиса MinIO есть этот лейбл (или app.kubernetes.io/name: minio)
+  namespaceSelector:
+    matchNames:
+      - minio # Неймспейс, где стоит MinIO
+  endpoints:
+  - port: http # Имя порта сервиса (обычно http или service)
+    path: /minio/v2/metrics/cluster
+    interval: 30s
+    scheme: http
+Примечание: Проверьте kubectl get svc -n minio --show-labels, чтобы узнать точные лейблы (selector) и имя порта (port). Если порт называется 9000-tcp, пишите port: 9000-tcp.
+Примените:
+code
+Bash
+kubectl apply -f minio-monitor.yaml
+3. GitLab (Omnibus/Server)
+GitLab отдает огромное количество метрик (Rails, Sidekiq, Postgres-internal, Gitaly).
+Создайте файл gitlab-monitor.yaml.
+Этот монитор предполагает, что GitLab установлен в namespace gitlab.
+code
+Yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: gitlab-monitor
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: gitlab # Стандартный лейбл GitLab
+  namespaceSelector:
+    matchNames:
+      - gitlab
+  endpoints:
+  # 1. Основные метрики GitLab (Rails/Unicorn/Puma)
+  - port: http-webservice
+    path: /-/metrics
+    interval: 30s
+    scheme: http
+  
+  # 2. Метрики Workhorse (обработка git-запросов)
+  - port: http-workhorse
+    path: /metrics
+    interval: 30s
+    scheme: http
+  
+  # 3. Метрики Sidekiq (очереди задач)
+  # Обычно доступны на том же порту, что и веб-сервис, но иногда отдельно
+  
+  # 4. Gitaly (если он доступен как сервис)
+  # Обычно требует отдельного ServiceMonitor, если Gitaly вынесен в отдельный под
+Примените:
+code
+Bash
+kubectl apply -f gitlab-monitor.yaml
+⚠️ Нюанс с GitLab:
+По умолчанию GitLab разрешает доступ к /-/metrics только из локальной сети. Если Prometheus не может получить данные (ошибка 403), вам нужно зайти в настройки GitLab (Admin Area -> Monitoring -> Metrics) и добавить CIDR подов Прометеуса (или 0.0.0.0/0 для теста) в "IP whitelist". Или настроить это через values.yaml GitLab'а (gitlab.webservice.monitoring.ipWhitelist).
+4. Grafana Dashboards (Визуализация)
+Теперь идем в Графану и импортируем дашборды (Import -> ID):
+GitLab Runner: ID 11693 (Отличный дашборд: показывает кол-во активных джобов, ошибки, память).
+MinIO: ID 13502 (Официальный дашборд для MinIO Cluster).
+GitLab Overview: ID 5768 (Обзор здоровья GitLab).
+Как проверить, что метрики идут?
+Зайдите в интерфейс Prometheus (можно через Port Forward):
+code
+Bash
+kubectl port-forward svc/prometheus-kube-prometheus-prometheus -n monitoring 9090:9090
+Откройте http://localhost:9090 -> Status -> Targets.
+Вы должны увидеть разделы minio-monitor, gitlab-monitor и gitlab-runner.
+Все они должны быть UP (зеленые). Если они DOWN, смотрите ошибку (обычно это либо "connection refused" — не тот порт, либо "403" — нет прав/вайтлиста).
