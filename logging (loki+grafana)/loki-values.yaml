@@ -2,10 +2,15 @@ deploymentMode: SimpleScalable
 
 loki:
   auth_enabled: false
-
+  memberlist:
+    service: loki-memberlist
   common:
-    replication_factor: 2 # Дублируем данные для надежности
+    replication_factor: 1
     path_prefix: /var/loki
+    ring:
+      instance_addr_type: ip  # Использовать IP пода вместо Hostname
+      kvstore:
+        store: memberlist 
     storage:
       s3:
         endpoint: http://minio.minio.svc.cluster.local:9000
@@ -47,25 +52,15 @@ loki:
 
 # 1. WRITE (Запись логов)
 write:
-  replicas: 2
+  replicas: 1
   persistence:
     enabled: true
     storageClass: managed-nfs-storage
     size: 10Gi
-  # Анти-аффинити, чтобы поды старались разъехаться по разным нодам
-  affinity:
-    podAntiAffinity:
-      preferredDuringSchedulingIgnoredDuringExecution:
-        - weight: 100
-          podAffinityTerm:
-            labelSelector:
-              matchLabels:
-                app.kubernetes.io/component: write
-            topologyKey: kubernetes.io/hostname
 
 # 2. READ (Чтение/Поиск)
 read:
-  replicas: 2
+  replicas: 1
   persistence:
     # Read-нодам нужен диск только для кэша, можно небольшой
     enabled: true
@@ -83,7 +78,7 @@ backend:
 # 4. GATEWAY (Nginx - единая точка входа)
 gateway:
   enabled: true
-  replicas: 2
+  replicas: 1
 
 
 # Отключаем встроенный мониторинг, если у вас уже есть свой prometheus-stack
