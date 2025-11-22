@@ -1,4 +1,4 @@
-deploymentMode: SingleBinary
+deploymentMode: SingleScalable
 
 loki:
   auth_enabled: false # Внутри периметра аутентификация тенантов (X-Scope-OrgID) не обязательна для старта
@@ -15,9 +15,9 @@ loki:
         s3forcepathstyle: true
         insecure: true # Внутри кластера HTTP
 
-  schema_config:
+  schemaConfig:
     configs:
-      - from: 2024-01-01
+      - from: 2024-04-01
         store: tsdb
         object_store: s3
         schema: v13
