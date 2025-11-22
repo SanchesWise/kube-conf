@@ -1,25 +1,20 @@
-deploymentMode: SingleBinary
+deploymentMode: SimpleScalable
 
 loki:
   auth_enabled: false
+
   common:
-    replication_factor: 1
+    replication_factor: 2 # Дублируем данные для надежности
     path_prefix: /var/loki
-    ring:
-      instance_addr: 127.0.0.1
-      kvstore:
-        store: inmemory
     storage:
       s3:
         endpoint: http://minio.minio.svc.cluster.local:9000
         bucketnames: loki-data
         access_key_id: loki
-        secret_access_key: FeerDe3o # 👈 ПРОВЕРЬТЕ ПАРОЛЬ
+        secret_access_key: FeerDe3o 
         s3forcepathstyle: true
         insecure: true
-  memberlist:
-    join_members:
-      - 127.0.0.1
+
   schemaConfig:
     configs:
       - from: 2024-04-01
@@ -29,8 +24,7 @@ loki:
         index:
           prefix: index_
           period: 24h
-  
-  # Настройки хранения
+
   storage:
     type: s3
     bucketNames:
@@ -40,7 +34,6 @@ loki:
 
   compactor:
     working_directory: /var/loki/compactor
-    #shared_store: s3
     delete_request_store: s3
     compaction_interval: 10m
     retention_enabled: true
@@ -50,38 +43,48 @@ loki:
   limits_config:
     retention_period: 30d
 
-singleBinary:
-  replicas: 1
+# --- КОМПОНЕНТЫ (Simple Scalable) ---
+
+# 1. WRITE (Запись логов)
+write:
+  replicas: 2
   persistence:
     enabled: true
     storageClass: managed-nfs-storage
-    size: 20Gi 
-  podSecurityContext:
-    fsGroup: 65534
-    runAsUser: 65534
-    runAsGroup: 65534
+    size: 10Gi
+  # Анти-аффинити, чтобы поды старались разъехаться по разным нодам
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: write
+            topologyKey: kubernetes.io/hostname
 
-# 2. Отключаем Gateway (он нам не нужен внутри кластера, будем ходить напрямую)
-gateway:
-  enabled: false
-
-# 3. Отключаем Memcached (экономим RAM, для одной ноды Loki он избыточен)
-chunksCache:
-  enabled: false
-resultsCache:
-  enabled: false
-
-# 4. Явно отключаем микросервисные компоненты
-backend:
-  replicas: 0
+# 2. READ (Чтение/Поиск)
 read:
-  replicas: 0
-write:
-  replicas: 0
-ingester:
-  replicas: 0
-querier:
-  replicas: 0
+  replicas: 2
+  persistence:
+    # Read-нодам нужен диск только для кэша, можно небольшой
+    enabled: true
+    storageClass: managed-nfs-storage
+    size: 10Gi
+
+# 3. BACKEND (Компакция, управление)
+backend:
+  replicas: 2
+  persistence:
+    enabled: true
+    storageClass: managed-nfs-storage
+    size: 10Gi
+
+# 4. GATEWAY (Nginx - единая точка входа)
+gateway:
+  enabled: true
+  replicas: 2
+
 
 # Отключаем встроенный мониторинг, если у вас уже есть свой prometheus-stack
 monitoring:
@@ -110,3 +113,5 @@ monitoring:
           severity: warning
         annotations:
           summary: "Loki is returning > 10% 5xx errors"      
+test:
+  enabled: false
