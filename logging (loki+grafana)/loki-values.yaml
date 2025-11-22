@@ -9,10 +9,14 @@ loki:
   common:
     replication_factor: 2
     path_prefix: /var/loki
+    
+    # 👇 ГЛАВНОЕ ИЗМЕНЕНИЕ ЗДЕСЬ
     ring:
-      instance_addr_type: ip
+      # Мы говорим Loki брать адрес прямо из переменной окружения
+      instance_addr: "${POD_IP}"
       kvstore:
         store: memberlist
+
     storage:
       s3:
         endpoint: http://minio.minio.svc.cluster.local:9000
@@ -50,7 +54,7 @@ loki:
   limits_config:
     retention_period: 30d
 
-# --- КОМПОНЕНТЫ (Явное указание IP) ---
+# --- КОМПОНЕНТЫ ---
 
 write:
   replicas: 2
@@ -58,16 +62,12 @@ write:
     enabled: true
     storageClass: managed-nfs-storage
     size: 10Gi
-  # 👇 1. Пробрасываем IP
+  # 👇 Только переменная окружения (без extraArgs)
   extraEnv:
     - name: POD_IP
       valueFrom:
         fieldRef:
           fieldPath: status.podIP
-  # 👇 2. Заставляем использовать IP как имя
-  extraArgs:
-    - '-common.ring.instance-addr=$(POD_IP)'
-    - '-common.instance-addr=$(POD_IP)'
 
 read:
   replicas: 2
@@ -75,15 +75,11 @@ read:
     enabled: true
     storageClass: managed-nfs-storage
     size: 10Gi
-  # 👇 То же самое для Read
   extraEnv:
     - name: POD_IP
       valueFrom:
         fieldRef:
           fieldPath: status.podIP
-  extraArgs:
-    - '-common.ring.instance-addr=$(POD_IP)'
-    - '-common.instance-addr=$(POD_IP)'
 
 backend:
   replicas: 2
@@ -91,19 +87,16 @@ backend:
     enabled: true
     storageClass: managed-nfs-storage
     size: 10Gi
-  # 👇 То же самое для Backend
   extraEnv:
     - name: POD_IP
       valueFrom:
         fieldRef:
           fieldPath: status.podIP
-  extraArgs:
-    - '-common.ring.instance-addr=$(POD_IP)'
-    - '-common.instance-addr=$(POD_IP)'
 
 gateway:
   enabled: true
   replicas: 2
+
 
 
 # Отключаем встроенный мониторинг, если у вас уже есть свой prometheus-stack
