@@ -112,6 +112,16 @@ global:
 
 # https://docs.gitlab.com/charts/advanced/external-object-storage/#backups
 gitlab:
+  webservice:
+    monitoring:
+      # Разрешаем доступ к метрикам из сети кубера
+      ipWhitelist:
+        - 0.0.0.0/0
+  workhorse:
+    # Иногда Workhorse требует отдельной настройки мониторинга
+    monitoring:
+      exporter:
+        enabled: true
   toolbox:
     backups:
       objectStorage:

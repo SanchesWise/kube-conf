@@ -15,7 +15,7 @@ spec:
   endpoints:
   # 1. Основные метрики GitLab (Rails/Unicorn/Puma)
   - port: http-metrics-ws
-    path: /-/metrics
+    path: /metrics
     interval: 30s
     scheme: http
   
