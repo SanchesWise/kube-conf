@@ -7,13 +7,3 @@ snippets:
   pipelineStages:
     - cri: {}
     - docker: {}
-
-# Монтирование путей с логами хоста (обязательно)
-extraVolumeMounts:
-  - name: pods
-    mountPath: /var/log/pods
-    readOnly: true
-extraVolumes:
-  - name: pods
-    hostPath:
-      path: /var/log/pods
