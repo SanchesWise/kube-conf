@@ -34,7 +34,13 @@ metrics:
       release: kube-prometheus-stack
     interval: "30s"      
 service:
-  enabled: false
+  enabled: true
+  type: ClusterIP
+  ports:
+    - name: metrics
+      port: 9252
+      targetPort: metrics
+      protocol: TCP  
 runners:
   config: |
     # log_level = "debug"
