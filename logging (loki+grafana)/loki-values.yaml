@@ -1,8 +1,7 @@
-deploymentMode: SingleScalable
+deploymentMode: SingleBinary
 
 loki:
-  auth_enabled: false # Внутри периметра аутентификация тенантов (X-Scope-OrgID) не обязательна для старта
-  
+  auth_enabled: false
   common:
     replication_factor: 1
     path_prefix: /var/loki
@@ -11,9 +10,9 @@ loki:
         endpoint: http://minio.minio.svc.cluster.local:9000
         bucketnames: loki-data
         access_key_id: loki
-        secret_access_key: FeerDe3o 
+        secret_access_key: FeerDe3o # 👈 ПРОВЕРЬТЕ ПАРОЛЬ
         s3forcepathstyle: true
-        insecure: true # Внутри кластера HTTP
+        insecure: true
 
   schemaConfig:
     configs:
@@ -24,7 +23,8 @@ loki:
         index:
           prefix: index_
           period: 24h
-
+  
+  # Настройки хранения
   storage:
     type: s3
     bucketNames:
@@ -32,7 +32,6 @@ loki:
       ruler: loki-data
       admin: loki-data
 
-  # Настройка очистки старых логов (Retention)
   compactor:
     working_directory: /var/loki/compactor
     shared_store: s3
@@ -40,23 +39,42 @@ loki:
     retention_enabled: true
     retention_delete_delay: 2h
     retention_delete_worker_count: 150
-  
+    
   limits_config:
-    retention_period: 30d # Храним логи 30 дней
+    retention_period: 30d
 
-# Настройка диска для временного буфера (WAL)
-singleScalable:
+singleBinary:
   replicas: 1
   persistence:
     enabled: true
-    storageClass: managed-nfs-storage # Пока используем NFS
+    storageClass: managed-nfs-storage
     size: 20Gi 
-  
-  # Важно для корректных прав доступа на NFS (nobody:nogroup)
   podSecurityContext:
     fsGroup: 65534
     runAsUser: 65534
     runAsGroup: 65534
+
+# 2. Отключаем Gateway (он нам не нужен внутри кластера, будем ходить напрямую)
+gateway:
+  enabled: false
+
+# 3. Отключаем Memcached (экономим RAM, для одной ноды Loki он избыточен)
+chunksCache:
+  enabled: false
+resultsCache:
+  enabled: false
+
+# 4. Явно отключаем микросервисные компоненты
+backend:
+  replicas: 0
+read:
+  replicas: 0
+write:
+  replicas: 0
+ingester:
+  replicas: 0
+querier:
+  replicas: 0
 
 # Отключаем встроенный мониторинг, если у вас уже есть свой prometheus-stack
 monitoring:
