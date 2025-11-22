@@ -1,0 +1,87 @@
+deploymentMode: SingleBinary
+
+loki:
+  auth_enabled: false # Внутри периметра аутентификация тенантов (X-Scope-OrgID) не обязательна для старта
+  
+  common:
+    replication_factor: 1
+    path_prefix: /var/loki
+    storage:
+      s3:
+        endpoint: http://minio.minio.svc.cluster.local:9000
+        bucketnames: loki-data
+        access_key_id: loki
+        secret_access_key: FeerDe3o 
+        s3forcepathstyle: true
+        insecure: true # Внутри кластера HTTP
+
+  schema_config:
+    configs:
+      - from: 2024-01-01
+        store: tsdb
+        object_store: s3
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
+
+  storage:
+    type: s3
+    bucketNames:
+      chunks: loki-data
+      ruler: loki-data
+      admin: loki-data
+
+  # Настройка очистки старых логов (Retention)
+  compactor:
+    working_directory: /var/loki/compactor
+    shared_store: s3
+    compaction_interval: 10m
+    retention_enabled: true
+    retention_delete_delay: 2h
+    retention_delete_worker_count: 150
+  
+  limits_config:
+    retention_period: 30d # Храним логи 30 дней
+
+# Настройка диска для временного буфера (WAL)
+singleBinary:
+  replicas: 1
+  persistence:
+    enabled: true
+    storageClass: managed-nfs-storage # Пока используем NFS
+    size: 20Gi 
+  
+  # Важно для корректных прав доступа на NFS (nobody:nogroup)
+  podSecurityContext:
+    fsGroup: 65534
+    runAsUser: 65534
+    runAsGroup: 65534
+
+# Отключаем встроенный мониторинг, если у вас уже есть свой prometheus-stack
+monitoring:
+  selfMonitoring:
+    enabled: false
+    lokiCanary:
+      enabled: false
+  serviceMonitor:
+    enabled: true
+    metricsInstance:
+      enabled: false # Не создавать новый инстанс Prometheus
+    namespace: monitoring
+    labels:
+      release: kube-prometheus-stack
+    interval: 15s
+    scrapeTimeout: 10s
+  prometheusRule:
+    enabled: true
+    labels:
+      release: prometheus
+    rules:
+      - alert: LokiRequestErrors
+        expr: 100 * sum(rate(loki_request_duration_seconds_count{status_code=~"5.."}[1m])) / sum(rate(loki_request_duration_seconds_count[1m])) > 10
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Loki is returning > 10% 5xx errors"      

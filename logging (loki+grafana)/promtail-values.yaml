@@ -1,0 +1,19 @@
+config:
+  clients:
+    - url: http://loki.log.svc.cluster.local:3100/loki/api/v1/push
+
+# Настройки для корректного чтения логов контейнеров
+snippets:
+  pipelineStages:
+    - cri: {}
+    - docker: {}
+
+# Монтирование путей с логами хоста (обязательно)
+extraVolumeMounts:
+  - name: pods
+    mountPath: /var/log/pods
+    readOnly: true
+extraVolumes:
+  - name: pods
+    hostPath:
+      path: /var/log/pods
