@@ -31,8 +31,9 @@ alertmanager:
         message: |-
           {{ range .Alerts }}
           🔥 <b>{{ .Status | toUpper }}</b>: {{ .Labels.alertname }}
+          🚨 <b>Severity:</b> {{ .Labels.severity | toUpper }}
           📦 <b>Job:</b> {{ .Labels.job }}
           🖥 <b>Pod:</b> {{ .Labels.pod }}
-          📝 <b>Message:</b> {{ .Annotations.message }}
+          📝 <b>Info:</b> {{ or .Annotations.message .Annotations.description .Annotations.summary "N/A" }}
           🔗 <a href="{{ .GeneratorURL }}">Source</a>
           {{ end }}

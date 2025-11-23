@@ -48,8 +48,6 @@ prometheus:
 # 3. Alertmanager (Уведомления)
 alertmanager:
   enabled: true
-  alertmanagerSpec:
-    externalUrl: "https://alertmanager.ccsfarm.local"  
   config:
     global:
       resolve_timeout: 5m
@@ -76,9 +74,10 @@ alertmanager:
         message: |-
           {{ range .Alerts }}
           🔥 <b>{{ .Status | toUpper }}</b>: {{ .Labels.alertname }}
+          🚨 <b>Severity:</b> {{ .Labels.severity | toUpper }}
           📦 <b>Job:</b> {{ .Labels.job }}
           🖥 <b>Pod:</b> {{ .Labels.pod }}
-          📝 <b>Message:</b> {{ .Annotations.message }}
+          📝 <b>Info:</b> {{ or .Annotations.message .Annotations.description .Annotations.summary "N/A" }}
           🔗 <a href="{{ .GeneratorURL }}">Source</a>
           {{ end }}
 
@@ -97,6 +96,7 @@ alertmanager:
           - alertmanager.ccsfarm.local
 
   alertmanagerSpec:
+    externalUrl: "https://alertmanager.ccsfarm.local"   
     storage:
       volumeClaimTemplate:
         spec:
