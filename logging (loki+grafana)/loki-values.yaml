@@ -15,13 +15,12 @@ loki:
       instance_addr: "${POD_IP}"
       kvstore:
         store: memberlist
+    # YAML конфиг оставляем как backup
     storage:
       s3:
-        # Endpoint оставляем здесь
         endpoint: http://minio.minio.svc.cluster.local:9000
         bucketnames: loki-data
         region: us-east-1
-        # Эти параметры важны для конфига, но мы продублируем их флагами для надежности
         s3forcepathstyle: true
         insecure: true
 
@@ -64,6 +63,7 @@ write:
     size: 10Gi
   extraArgs:
     - -config.expand-env=true
+  # 👇 ГЛАВНОЕ ИЗМЕНЕНИЕ: Дублируем переменные для storage.s3
   extraEnv:
     - name: POD_IP
       valueFrom:
@@ -75,12 +75,26 @@ write:
       value: FeerDe3o
     - name: AWS_REGION
       value: us-east-1
+
+    # 1. Настройки для COMMON (как раньше)
+    - name: LOKI_COMMON_STORAGE_S3_ENDPOINT
+      value: http://minio.minio.svc.cluster.local:9000
     - name: LOKI_COMMON_STORAGE_S3_S3FORCEPATHSTYLE
       value: "true"
     - name: LOKI_COMMON_STORAGE_S3_INSECURE
       value: "true"
-    - name: LOKI_COMMON_STORAGE_S3_ENDPOINT
+    
+    # 2. Настройки для STORAGE (Именно их использует Ingester/Flush)
+    - name: LOKI_STORAGE_S3_ENDPOINT
       value: http://minio.minio.svc.cluster.local:9000
+    - name: LOKI_STORAGE_S3_S3FORCEPATHSTYLE
+      value: "true"
+    - name: LOKI_STORAGE_S3_INSECURE
+      value: "true"
+    - name: LOKI_STORAGE_S3_REGION
+      value: us-east-1
+    - name: LOKI_STORAGE_S3_BUCKETNAMES
+      value: loki-data
 
 read:
   replicas: 2
@@ -101,12 +115,22 @@ read:
       value: FeerDe3o
     - name: AWS_REGION
       value: us-east-1
+      
+    # Дублируем переменные
+    - name: LOKI_COMMON_STORAGE_S3_ENDPOINT
+      value: http://minio.minio.svc.cluster.local:9000
     - name: LOKI_COMMON_STORAGE_S3_S3FORCEPATHSTYLE
       value: "true"
     - name: LOKI_COMMON_STORAGE_S3_INSECURE
       value: "true"
-    - name: LOKI_COMMON_STORAGE_S3_ENDPOINT
+    - name: LOKI_STORAGE_S3_ENDPOINT
       value: http://minio.minio.svc.cluster.local:9000
+    - name: LOKI_STORAGE_S3_S3FORCEPATHSTYLE
+      value: "true"
+    - name: LOKI_STORAGE_S3_INSECURE
+      value: "true"
+    - name: LOKI_STORAGE_S3_REGION
+      value: us-east-1
 
 backend:
   replicas: 2
@@ -127,12 +151,22 @@ backend:
       value: FeerDe3o
     - name: AWS_REGION
       value: us-east-1
+      
+    # Дублируем переменные
+    - name: LOKI_COMMON_STORAGE_S3_ENDPOINT
+      value: http://minio.minio.svc.cluster.local:9000
     - name: LOKI_COMMON_STORAGE_S3_S3FORCEPATHSTYLE
       value: "true"
     - name: LOKI_COMMON_STORAGE_S3_INSECURE
       value: "true"
-    - name: LOKI_COMMON_STORAGE_S3_ENDPOINT
+    - name: LOKI_STORAGE_S3_ENDPOINT
       value: http://minio.minio.svc.cluster.local:9000
+    - name: LOKI_STORAGE_S3_S3FORCEPATHSTYLE
+      value: "true"
+    - name: LOKI_STORAGE_S3_INSECURE
+      value: "true"
+    - name: LOKI_STORAGE_S3_REGION
+      value: us-east-1
 
 gateway:
   enabled: true
