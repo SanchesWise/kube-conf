@@ -126,16 +126,16 @@ schedules:
 
 ```bash
 # Скачиваем последнюю версию (проверьте актуальность на GitHub, сейчас v1.13+)
-wget https://github.com/vmware-tanzu/velero/releases/download/v1.13.0/velero-v1.13.0-linux-amd64.tar.gz
+wget https://github.com/vmware-tanzu/velero/releases/download/v1.17.1/velero-v1.17.1-linux-amd64.tar.gz
 
 # Распаковываем
-tar -zxvf velero-v1.13.0-linux-amd64.tar.gz
+tar -zxvf velero-v1.17.1-linux-amd64.tar.gz
 
 # Перемещаем бинарник в PATH
-sudo mv velero-v1.13.0-linux-amd64/velero /usr/local/bin/
+sudo mv velero-v1.17.1-linux-amd64/velero /usr/local/bin/
 
 # Чистим мусор
-rm -rf velero-v1.13.0-linux-amd64*
+rm -rf velero-v1.17.1-linux-amd64*
 
 # Проверяем
 velero version
