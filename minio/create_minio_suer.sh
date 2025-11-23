@@ -62,7 +62,7 @@ kubectl run minio-configurator-$(date +%s) \
     --env="NEW_USER=$NEW_USER" \
     --env="NEW_PASS=$NEW_PASS" \
     --env="BUCKETS=$BUCKETS_LIST" \
-    -- /bin/sh -c '
+    --command -- /bin/sh -c '
         echo "🔌 Подключение к MinIO ($MINIO_ENDPOINT)..."
         # Устанавливаем алиас (подключение)
         if ! mc alias set myminio $MINIO_ENDPOINT $ADMIN_USER $ADMIN_PASS; then
