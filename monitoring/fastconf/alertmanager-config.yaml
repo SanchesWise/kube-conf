@@ -29,6 +29,10 @@ alertmanager:
         chat_id: -588423214
         parse_mode: 'HTML'
         message: |-
+          {{ range .Alerts }}
           🔥 <b>{{ .Status | toUpper }}</b>: {{ .Labels.alertname }}
           📦 <b>Job:</b> {{ .Labels.job }}
+          🖥 <b>Pod:</b> {{ .Labels.pod }}
           📝 <b>Message:</b> {{ .Annotations.message }}
+          🔗 <a href="{{ .GeneratorURL }}">Source</a>
+          {{ end }}

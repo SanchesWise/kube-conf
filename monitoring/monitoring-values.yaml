@@ -27,6 +27,7 @@ prometheus:
   prometheusSpec:
     # Сколько хранить метрики (по умолчанию 10 дней, ставим 30)
     retention: 30d
+    externalUrl: "https://prom.ccsfarm.local"    
     
     # Хранилище для метрик
     storageSpec:
@@ -47,6 +48,8 @@ prometheus:
 # 3. Alertmanager (Уведомления)
 alertmanager:
   enabled: true
+  alertmanagerSpec:
+    externalUrl: "https://alertmanager.ccsfarm.local"  
   config:
     global:
       resolve_timeout: 5m
