@@ -30,6 +30,9 @@ spec:
     metadata:
       labels:
         app: nginx
+      # 👇 ВАЖНО: Эта аннотация включает Restic/Kopia для тома "logs"
+      annotations:
+        backup.velero.io/backup-volumes: logs
     spec:
       containers:
       - name: nginx
