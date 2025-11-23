@@ -330,3 +330,105 @@ DevOps: GitLab (gitlab), Nexus (nexus), Registry (registry-nexus), ArgoCD (argoc
 Ops: Grafana (grafana), Prometheus (prom), Alertmanager (alertmanager), MinIO (minio).
 Data: PostgreSQL 16, Redis.
 IoT: Frigate (frigate).
+
+ **исправленная и полная финальная сводка (v5.2)**. 
+
+---
+
+# 📑 Итоговая сводка по инфраструктуре Kubernetes (v5.2 Final)
+**Дата актуализации:** 24 Ноября 2025
+**Статус:** Production Ready / Secured / Full Observability
+
+## 1. 🏗️ Архитектура и Вычислительные ресурсы
+*   **Платформа:** Bare Metal / Proxmox VMs.
+*   **Версия Kubernetes:** v1.28.15.
+*   **Узлы (7 шт):**
+    *   **Control Plane (3):** `k8s-master`, `k8s-control01`, `k8s-control02`.
+    *   **Workers (4):** `k8s-worker01` .. `k8s-worker04`.
+*   **ОС:** RED OS 8.0 (RHEL-based) + CRI-O v1.32.6.
+*   **Синхронизация времени:** Исправлена (`chronyd` + пулы Yandex/Google).
+
+## 2. 🌐 Сеть и DNS
+*   **Домен:** `ccsfarm.local` (Internal CA).
+*   **Внешние адреса (MetalLB L2):** API `10.10.2.110`, Ingress VIP `10.10.2.111`.
+*   **Внутренние сети:** Pods `10.233.64.0/18`, Services `10.233.0.0/18`.
+*   **Ingress:** Nginx (v1.9.6), `externalTrafficPolicy: Local`.
+
+## 3. 💾 Система Хранения Данных
+*   **NFS (Основное):** `managed-nfs-storage` (>300TB).
+    *   **Требование:** `runAsUser: 65534` (nobody) для записи данных.
+*   **MinIO (S3 Object Storage):**
+    *   Кластер из 3 нод.
+    *   Используется для: Loki (Logs), Velero (Backups), GitLab (Artifacts/LFS).
+
+## 4. 🚀 GITLAB & CI/CD (Production ✅)
+*   **Версия:** GitLab 18 (Omnibus/Cloud Native components).
+*   **URL:** `https://gitlab.ccsfarm.local`
+*   **Runner:** Kubernetes Executor (масштабируемый).
+*   **CI/CD (Kaniko):**
+    *   Реджистри: Локальный Nexus (`registry-nexus.ccsfarm.local`).
+    *   **SSL Fix:** Сертификат Internal CA монтируется в контейнеры сборки в `/custom-certs/` и передается флагом `--registry-certificate`, чтобы Kaniko доверял самоподписанному сертификату Nexus.
+*   **Мониторинг:**
+    *   IP Whitelist `10.233.0.0/16` настроен в GitLab для доступа Prometheus без аутентификации.
+
+## 5. 👁️ Наблюдаемость (Observability Stack)
+### 📊 Мониторинг (Prometheus Stack)
+*   **Стек:** Prometheus + Alertmanager + Grafana + NodeExporter.
+*   **Интеграция:** Grafana подключена к Prometheus (метрики) и Loki (логи).
+*   **Экспортеры (Target Health):**
+    *   **GitLab:** Webservice, Sidekiq, Workhorse, Runner (полный охват).
+    *   **Базы данных:** Redis, PostgreSQL.
+    *   **MinIO:** Native metrics (режим public).
+    *   **Cert-Manager:** Native metrics.
+*   **Алертинг:**
+    *   Канал: **Telegram**.
+    *   Правила: Стандартные k8s + кастомные (SSL, MinIO, Time Drift, Ingress Errors).
+
+### 📜 Логгирование (Loki)
+*   **Архитектура:** Simple Scalable (S3 backend).
+*   **Конфигурация:** `structuredConfig` с принудительным `s3forcepathstyle: true` для MinIO.
+*   **Ruler:** Активен, пересылает алерты на основе логов в Alertmanager.
+
+## 6. 🚑 Резервное копирование (Disaster Recovery)
+### Эшелон 1: Velero (Apps & Data)
+*   **Хранилище:** S3 MinIO (`velero-backups`).
+*   **Метод (NFS):** File System Backup (FSB/Restic).
+*   **Обязательное условие:** Аннотация `backup.velero.io/backup-volumes: <volume-name>` в Deployment/StatefulSet для бэкапа содержимого NFS-томов.
+
+### Эшелон 2: Etcd (Cluster State)
+*   **Метод:** Локальные снапшоты + копирование на NFS маунт `/mnt/k8s-backup` через Cron.
+
+## 7. ИНФРАСТРУКТУРНЫЕ СЕРВИСЫ
+### ✅ ИНФРАСТРУКТУРНЫЕ СЕРВИСЫ
+1.  **Nexus Repository:**
+    *   200Gb
+    *   HTTPS (`nexus.ccsfarm.local`).
+    *   Docker Registry на порту 8082 (`registry-nexus.ccsfarm.local`).
+    *   Настроен `Docker Bearer Token Realm`.
+2.  **MinIO:**
+    *   3 ноды по 100Gb
+    *   Внутренний доступ: `http://minio.minio.svc.cluster.local:9000` (для Loki/Runner).
+    *   Внешний доступ: HTTPS Console.
+3.  **Базы Данных:**
+    *   PostgreSQL 16 (StatefulSet).
+    *   Redis (Standalone).
+
+---
+
+## ⚠️ КАРТА ДОСТУПА (Endpoints Map)
+Все сервисы доступны по HTTPS:
+
+| Сервис | URL | Примечание |
+| :--- | :--- | :--- |
+| **GitLab** | `https://gitlab.ccsfarm.local` | Main Repo / CI |
+| **Nexus** | `https://nexus.ccsfarm.local` | Artifacts |
+| **Registry** | `https://registry-nexus.ccsfarm.local` | Docker Images |
+| **Grafana** | `https://grafana.ccsfarm.local` | Dashboards / Logs |
+| **Prometheus**| `https://prom.ccsfarm.local` | Metrics Source |
+| **Alertmgr** | `https://alertmanager.ccsfarm.local` | Alerts |
+| **MinIO** | `https://minio.ccsfarm.local` | S3 Browser |
+| **ArgoCD** | `https://argocd.ccsfarm.local` | GitOps |
+| **PgAdmin** | `https://pg.ccsfarm.local` | DB Admin |
+| **Frigate** | `https://frigate.ccsfarm.local` | NVR |
+
+**Сессия завершена. Конфигурация зафиксирована.**
