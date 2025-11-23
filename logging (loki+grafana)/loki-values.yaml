@@ -8,6 +8,18 @@ loki:
     join_members:
       - loki-memberlist
 
+  storage:
+    type: s3
+    bucketNames:
+      chunks: loki-data
+      ruler: loki-data
+      admin: loki-data
+    s3:
+      endpoint: http://minio.minio.svc.cluster.local:9000
+      region: us-east-1
+      s3forcepathstyle: true
+      insecure: true
+
   # --- ГЛАВНОЕ ИЗМЕНЕНИЕ ---
   # Мы используем structuredConfig, чтобы напрямую внедрить настройки в config.yaml
   # Это отключает "магию" Helm-чарта и заставляет Loki работать точно по инструкции MinIO.
