@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#Убедитесь, что на NFS сервере (10.10.1.53) есть папка /tank01/VM_storage/k8s-etcd-backups. Если нет — создайте её и дайте права на запись (например, chmod 777).
+
 # Список Control-plane нод
 MASTERS="k8s-master k8s-control01 k8s-control02"
 
@@ -14,7 +16,7 @@ ETCD_VER="v3.5.9"
 for NODE in $MASTERS; do
     echo -e "\n\033[1;33m🚀 Настройка бэкапов на $NODE...\033[0m"
     
-    ssh -o StrictHostKeyChecking=no $NODE "sudo bash -c '
+    ssh -o StrictHostKeyChecking=no $NODE "sudo -S bash -c '
         # 1. Установка etcdctl (если нет)
         if ! command -v etcdctl &> /dev/null; then
             echo \"Installing etcdctl...\"
