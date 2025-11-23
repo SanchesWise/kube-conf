@@ -5,17 +5,17 @@ loki:
 
   memberlist:
     service: loki-memberlist
-  ruler:
-    storage:
-      type: s3
-      s3:
-        endpoint: http://minio.minio.svc.cluster.local:9000
-        bucketnames: loki-data
-        access_key_id: loki
-        secret_access_key: FeerDe3o
-        s3forcepathstyle: true
-        insecure: true
-  common:
+  # ruler:
+  #   storage:
+  #     type: s3
+  #     s3:
+  #       endpoint: http://minio.minio.svc.cluster.local:9000
+  #       bucketnames: loki-data
+  #       access_key_id: loki
+  #       secret_access_key: FeerDe3o
+  #       s3forcepathstyle: true
+  #       insecure: true
+  # common:
     replication_factor: 2
     path_prefix: /var/loki
     
@@ -28,12 +28,21 @@ loki:
 
     storage:
       s3:
+        # Endpoint должен быть полным
         endpoint: http://minio.minio.svc.cluster.local:9000
+        # MinIO требует указания региона, даже если он фейковый
+        region: us-east-1
         bucketnames: loki-data
         access_key_id: loki
         secret_access_key: FeerDe3o
+        # КРИТИЧНО: Заставляет обращаться как http://host/bucket, а не http://bucket.host
         s3forcepathstyle: true
+        # КРИТИЧНО: Разрешает HTTP (без SSL)
         insecure: true
+        # Оптимизация HTTP клиента
+        http_config:
+          idle_conn_timeout: 90s
+          insecure_skip_verify: true
 
   schemaConfig:
     configs:
@@ -51,6 +60,8 @@ loki:
       chunks: loki-data
       ruler: loki-data
       admin: loki-data
+    s3:
+      s3forcepathstyle: true
 
   compactor:
     working_directory: /var/loki/compactor
@@ -77,16 +88,16 @@ write:
       valueFrom:
         fieldRef:
           fieldPath: status.podIP
-    - name: AWS_ACCESS_KEY_ID
-      value: loki
-    - name: AWS_SECRET_ACCESS_KEY
-      value: FeerDe3o
-    - name: LOKI_COMMON_STORAGE_S3_ENDPOINT
-      value: http://minio.minio.svc.cluster.local:9000
-    - name: LOKI_COMMON_STORAGE_S3_S3FORCEPATHSTYLE
-      value: "true"
-    - name: LOKI_COMMON_STORAGE_S3_REGION
-      value: us-east-1
+    # - name: AWS_ACCESS_KEY_ID
+    #   value: loki
+    # - name: AWS_SECRET_ACCESS_KEY
+    #   value: FeerDe3o
+    # - name: LOKI_COMMON_STORAGE_S3_ENDPOINT
+    #   value: http://minio.minio.svc.cluster.local:9000
+    # - name: LOKI_COMMON_STORAGE_S3_S3FORCEPATHSTYLE
+    #   value: "true"
+    # - name: LOKI_COMMON_STORAGE_S3_REGION
+    #   value: us-east-1
 read:
   replicas: 2
   persistence:
@@ -98,16 +109,16 @@ read:
       valueFrom:
         fieldRef:
           fieldPath: status.podIP
-    - name: AWS_ACCESS_KEY_ID
-      value: loki          
-    - name: AWS_SECRET_ACCESS_KEY
-      value: FeerDe3o
-    - name: LOKI_COMMON_STORAGE_S3_ENDPOINT
-      value: http://minio.minio.svc.cluster.local:9000
-    - name: LOKI_COMMON_STORAGE_S3_S3FORCEPATHSTYLE
-      value: "true"
-    - name: LOKI_COMMON_STORAGE_S3_REGION
-      value: us-east-1      
+    # - name: AWS_ACCESS_KEY_ID
+    #   value: loki          
+    # - name: AWS_SECRET_ACCESS_KEY
+    #   value: FeerDe3o
+    # - name: LOKI_COMMON_STORAGE_S3_ENDPOINT
+    #   value: http://minio.minio.svc.cluster.local:9000
+    # - name: LOKI_COMMON_STORAGE_S3_S3FORCEPATHSTYLE
+    #   value: "true"
+    # - name: LOKI_COMMON_STORAGE_S3_REGION
+    #   value: us-east-1      
 backend:
   replicas: 2
   persistence:
@@ -119,16 +130,16 @@ backend:
       valueFrom:
         fieldRef:
           fieldPath: status.podIP
-    - name: AWS_ACCESS_KEY_ID
-      value: loki          
-    - name: AWS_SECRET_ACCESS_KEY
-      value: FeerDe3o
-    - name: LOKI_COMMON_STORAGE_S3_ENDPOINT
-      value: http://minio.minio.svc.cluster.local:9000
-    - name: LOKI_COMMON_STORAGE_S3_S3FORCEPATHSTYLE
-      value: "true"
-    - name: LOKI_COMMON_STORAGE_S3_REGION
-      value: us-east-1      
+    # - name: AWS_ACCESS_KEY_ID
+    #   value: loki          
+    # - name: AWS_SECRET_ACCESS_KEY
+    #   value: FeerDe3o
+    # - name: LOKI_COMMON_STORAGE_S3_ENDPOINT
+    #   value: http://minio.minio.svc.cluster.local:9000
+    # - name: LOKI_COMMON_STORAGE_S3_S3FORCEPATHSTYLE
+    #   value: "true"
+    # - name: LOKI_COMMON_STORAGE_S3_REGION
+    #   value: us-east-1      
 gateway:
   enabled: true
   replicas: 2
