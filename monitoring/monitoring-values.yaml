@@ -68,7 +68,7 @@ alertmanager:
       telegram_configs:
       - bot_token: '1808066068:AAHGMaGCw_z3zSa6Ega93bq5yyOIIx4p4R4'
         api_url: 'https://api.telegram.org'
-        chat_id: --588423214 # Ваш ID чата (для групп начинается с -100)
+        chat_id: -588423214
         parse_mode: 'HTML'
         message: |-
           {{ range .Alerts }}
@@ -92,7 +92,7 @@ alertmanager:
       - secretName: alertmanager-tls-secret
         hosts:
           - alertmanager.ccsfarm.local
-          
+
   alertmanagerSpec:
     storage:
       volumeClaimTemplate:

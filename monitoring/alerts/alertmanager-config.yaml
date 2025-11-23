@@ -1,0 +1,32 @@
+alertmanager:
+  config:
+    global:
+      resolve_timeout: 5m
+    
+    # Настройка маршрутизации
+    route:
+      group_by: ['alertname', 'job']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      # 👇 ГЛАВНОЕ: Указываем дефолтного получателя
+      receiver: 'telegram-receiver'
+      routes:
+        - matchers:
+            - alertname="Watchdog"
+          receiver: 'null'
+    
+    # Настройка получателей
+    receivers:
+    - name: 'null'
+    - name: 'telegram-receiver'
+      telegram_configs:
+      # 👇 ВАШИ ДАННЫЕ
+      - bot_token: '1808066068:AAHGMaGCw_z3zSa6Ega93bq5yyOIIx4p4R4'
+        api_url: 'https://api.telegram.org'
+        chat_id: -588423214
+        parse_mode: 'HTML'
+        message: |-
+          🔥 <b>{{ .Status | toUpper }}</b>: {{ .Labels.alertname }}
+          📦 <b>Job:</b> {{ .Labels.job }}
+          📝 <b>Message:</b> {{ .Annotations.message }}
