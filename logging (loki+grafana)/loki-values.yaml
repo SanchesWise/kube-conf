@@ -62,12 +62,8 @@ write:
     enabled: true
     storageClass: managed-nfs-storage
     size: 10Gi
-  # 👇 ГЛАВНОЕ: Форсируем настройки S3 через аргументы
   extraArgs:
     - -config.expand-env=true
-    - -common.storage.s3.s3forcepathstyle=true
-    - -common.storage.s3.insecure=true
-  # 👇 ГЛАВНОЕ: Возвращаем ключи, но НЕ трогаем Endpoint через ENV
   extraEnv:
     - name: POD_IP
       valueFrom:
@@ -77,9 +73,14 @@ write:
       value: loki
     - name: AWS_SECRET_ACCESS_KEY
       value: FeerDe3o
-    # Важный хак для MinIO:
     - name: AWS_REGION
       value: us-east-1
+    - name: LOKI_COMMON_STORAGE_S3_S3FORCEPATHSTYLE
+      value: "true"
+    - name: LOKI_COMMON_STORAGE_S3_INSECURE
+      value: "true"
+    - name: LOKI_COMMON_STORAGE_S3_ENDPOINT
+      value: http://minio.minio.svc.cluster.local:9000
 
 read:
   replicas: 2
@@ -89,8 +90,6 @@ read:
     size: 10Gi
   extraArgs:
     - -config.expand-env=true
-    - -common.storage.s3.s3forcepathstyle=true
-    - -common.storage.s3.insecure=true
   extraEnv:
     - name: POD_IP
       valueFrom:
@@ -102,6 +101,12 @@ read:
       value: FeerDe3o
     - name: AWS_REGION
       value: us-east-1
+    - name: LOKI_COMMON_STORAGE_S3_S3FORCEPATHSTYLE
+      value: "true"
+    - name: LOKI_COMMON_STORAGE_S3_INSECURE
+      value: "true"
+    - name: LOKI_COMMON_STORAGE_S3_ENDPOINT
+      value: http://minio.minio.svc.cluster.local:9000
 
 backend:
   replicas: 2
@@ -111,8 +116,6 @@ backend:
     size: 10Gi
   extraArgs:
     - -config.expand-env=true
-    - -common.storage.s3.s3forcepathstyle=true
-    - -common.storage.s3.insecure=true
   extraEnv:
     - name: POD_IP
       valueFrom:
@@ -124,6 +127,12 @@ backend:
       value: FeerDe3o
     - name: AWS_REGION
       value: us-east-1
+    - name: LOKI_COMMON_STORAGE_S3_S3FORCEPATHSTYLE
+      value: "true"
+    - name: LOKI_COMMON_STORAGE_S3_INSECURE
+      value: "true"
+    - name: LOKI_COMMON_STORAGE_S3_ENDPOINT
+      value: http://minio.minio.svc.cluster.local:9000
 
 gateway:
   enabled: true
