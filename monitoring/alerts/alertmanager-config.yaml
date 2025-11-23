@@ -1,4 +1,6 @@
 alertmanager:
+  alertmanagerSpec:
+    externalUrl: "https://alertmanager.ccsfarm.local"
   config:
     global:
       resolve_timeout: 5m
