@@ -70,66 +70,66 @@ loki:
 
 # --- КОМПОНЕНТЫ ---
 
-write:
-  replicas: 2
-  persistence:
-    enabled: true
-    storageClass: managed-nfs-storage
-    size: 10Gi
-  extraArgs:
-    - -config.expand-env=true
-  # 👇 Очистили от LOKI_... переменных. Оставили только ключи AWS.
-  extraEnv:
-    - name: POD_IP
-      valueFrom:
-        fieldRef:
-          fieldPath: status.podIP
-    - name: AWS_ACCESS_KEY_ID
-      value: loki
-    - name: AWS_SECRET_ACCESS_KEY
-      value: FeerDe3o
-    - name: AWS_REGION
-      value: us-east-1
+# write:
+#   replicas: 2
+#   persistence:
+#     enabled: true
+#     storageClass: managed-nfs-storage
+#     size: 10Gi
+#   extraArgs:
+#     - -config.expand-env=true
+#   # 👇 Очистили от LOKI_... переменных. Оставили только ключи AWS.
+#   extraEnv:
+#     - name: POD_IP
+#       valueFrom:
+#         fieldRef:
+#           fieldPath: status.podIP
+#     - name: AWS_ACCESS_KEY_ID
+#       value: loki
+#     - name: AWS_SECRET_ACCESS_KEY
+#       value: FeerDe3o
+#     - name: AWS_REGION
+#       value: us-east-1
 
-read:
-  replicas: 2
-  persistence:
-    enabled: true
-    storageClass: managed-nfs-storage
-    size: 10Gi
-  extraArgs:
-    - -config.expand-env=true
-  extraEnv:
-    - name: POD_IP
-      valueFrom:
-        fieldRef:
-          fieldPath: status.podIP
-    - name: AWS_ACCESS_KEY_ID
-      value: loki
-    - name: AWS_SECRET_ACCESS_KEY
-      value: FeerDe3o
-    - name: AWS_REGION
-      value: us-east-1
+# read:
+#   replicas: 2
+#   persistence:
+#     enabled: true
+#     storageClass: managed-nfs-storage
+#     size: 10Gi
+#   extraArgs:
+#     - -config.expand-env=true
+#   extraEnv:
+#     - name: POD_IP
+#       valueFrom:
+#         fieldRef:
+#           fieldPath: status.podIP
+#     - name: AWS_ACCESS_KEY_ID
+#       value: loki
+#     - name: AWS_SECRET_ACCESS_KEY
+#       value: FeerDe3o
+#     - name: AWS_REGION
+#       value: us-east-1
 
-backend:
-  replicas: 2
-  persistence:
-    enabled: true
-    storageClass: managed-nfs-storage
-    size: 10Gi
-  extraArgs:
-    - -config.expand-env=true
-  extraEnv:
-    - name: POD_IP
-      valueFrom:
-        fieldRef:
-          fieldPath: status.podIP
-    - name: AWS_ACCESS_KEY_ID
-      value: loki
-    - name: AWS_SECRET_ACCESS_KEY
-      value: FeerDe3o
-    - name: AWS_REGION
-      value: us-east-1
+# backend:
+#   replicas: 2
+#   persistence:
+#     enabled: true
+#     storageClass: managed-nfs-storage
+#     size: 10Gi
+#   extraArgs:
+#     - -config.expand-env=true
+#   extraEnv:
+#     - name: POD_IP
+#       valueFrom:
+#         fieldRef:
+#           fieldPath: status.podIP
+#     - name: AWS_ACCESS_KEY_ID
+#       value: loki
+#     - name: AWS_SECRET_ACCESS_KEY
+#       value: FeerDe3o
+#     - name: AWS_REGION
+#       value: us-east-1
 
 gateway:
   enabled: true
