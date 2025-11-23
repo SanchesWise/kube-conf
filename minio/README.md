@@ -15,7 +15,7 @@
 Выполните в терминале:
 
 
-kubectl run minio-admin -it --rm --image=minio/mc --restart=Never -n minio -- /bin/sh
+kubectl run minio-admin -it --rm --image=minio/mc:RELEASE.2024-11-05T11-29-45Z-cpuv1 --restart=Never -n minio --command -- /bin/sh
 
 (Вы попадете внутрь контейнера, командная строка сменится на sh-4.4# или похожее)
 
@@ -32,9 +32,7 @@ mc alias set myminio http://minio.minio.svc.cluster.local:9000 admin password
 
 code
 Bash
-download
-content_copy
-expand_less
+
 # Создаем пользователя loki с паролем (замените на сложный!)
 mc admin user add myminio loki SuperSecretLokiPassword123!
 
@@ -45,9 +43,7 @@ mc admin user add myminio loki SuperSecretLokiPassword123!
 
 code
 Bash
-download
-content_copy
-expand_less
+
 mc admin policy attach myminio readwrite --user loki
 
 Должно вывести: Policy 'readwrite' is attached on user 'loki'.
@@ -56,9 +52,7 @@ mc admin policy attach myminio readwrite --user loki
 
 code
 Bash
-download
-content_copy
-expand_less
+
 mc mb myminio/loki-data
 
 6. Выход:
