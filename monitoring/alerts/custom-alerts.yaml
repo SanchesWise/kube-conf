@@ -7,25 +7,132 @@ metadata:
     release: kube-prometheus-stack
 spec:
   groups:
-  - name: custom.rules
+
+  # ----------------------------------------------------
+  # 1. SSL СЕРТИФИКАТЫ (Самое важное для HTTPS)
+  # ----------------------------------------------------
+  - name: cert-manager.rules
     rules:
-    # Пример 1: Алерт, если MinIO недоступен (нет подов)
-    - alert: MinioDown
-      expr: kube_statefulset_status_replicas_ready{statefulset="minio"} == 0
+    - alert: CertExpiringSoon
+      # Сработает, если сертификат истекает менее чем через 14 дней
+      expr: avg_over_time(certmanager_certificate_expiration_timestamp_seconds[5m]) - time() < 1209600
+      for: 1h
+      labels:
+        severity: warning
+      annotations:
+        summary: "SSL Certificate is expiring soon"
+        description: "Certificate {{ $labels.name }} (namespace: {{ $labels.namespace }}) expires in less than 2 weeks."
+
+    - alert: CertManagerHitRateLow
+      # Если cert-manager не может обновить сертификаты (ошибки API)
+      expr: rate(certmanager_http_acme_client_request_count{status!~"2.."}[5m]) > 0
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Cert-Manager ACME Errors"
+        description: "Cert-Manager is encountering errors communicating with the issuer."
+
+  # ----------------------------------------------------
+  # 2. MINIO (S3 Хранилище логов и артефактов)
+  # ----------------------------------------------------
+  - name: minio.rules
+    rules:
+    - alert: MinioClusterDown
+      # Если количество живых нод MinIO меньше ожидаемого (у вас 3)
+      expr: minio_cluster_nodes_offline_total > 0
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "MinIO Node is Offline"
+        description: "One or more MinIO nodes are down. Cluster is degraded."
+
+    - alert: MinioDiskSpaceLow
+      # Если на дисках MinIO осталось менее 15% места
+      expr: (minio_cluster_capacity_usable_free_bytes / minio_cluster_capacity_usable_total_bytes) * 100 < 15
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: "MinIO Storage Low"
+        description: "MinIO cluster has less than 15% free space."
+
+  # ----------------------------------------------------
+  # 3. NGINX INGRESS (Точка входа)
+  # ----------------------------------------------------
+  - name: ingress.rules
+    rules:
+    - alert: NginxHighErrorRate
+      # Если более 5% запросов возвращают 5xx ошибки (за последние 2 минуты)
+      expr: (sum(rate(nginx_ingress_controller_requests{status=~"5.."}[2m])) / sum(rate(nginx_ingress_controller_requests[2m]))) * 100 > 5
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "High HTTP 5xx Error Rate"
+        description: "Ingress Controller detects > 5% error rate. Check backend services."
+
+  # ----------------------------------------------------
+  # 4. POSTGRESQL & REDIS (Базы данных)
+  # ----------------------------------------------------
+  - name: databases.rules
+    rules:
+    - alert: PostgresDown
+      expr: pg_up == 0
       for: 1m
       labels:
         severity: critical
       annotations:
-        summary: "MinIO Cluster is DOWN"
-        message: "MinIO has 0 ready replicas. S3 storage is unavailable."
+        summary: "PostgreSQL is Down"
+        description: "Postgres exporter cannot connect to the database."
 
-    # Пример 2: Тестовый алерт (всегда срабатывает)
-    # Раскомментируйте для проверки связи с Telegram
-    - alert: TestAlert
-      expr: vector(1)
+    - alert: RedisDown
+      expr: redis_up == 0
       for: 1m
       labels:
-        severity: info
+        severity: critical
       annotations:
-        summary: "Checking Alertmanager"
-        message: "This is a test alert to verify Telegram integration."
+        summary: "Redis is Down"
+        description: "Redis instance is unavailable."
+
+  # ----------------------------------------------------
+  # 5. ХРАНЕНИЕ И СИСТЕМА (NFS / Time)
+  # ----------------------------------------------------
+  - name: system.rules
+    rules:
+    - alert: NFSMountStuck
+      # Косвенная проверка: если IO wait на нодах слишком высокий (часто признак отвала NFS)
+      expr: avg(rate(node_cpu_seconds_total{mode="iowait"}[5m])) by (instance) > 0.3
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High IO Wait (Potential NFS Issue)"
+        description: "Node {{ $labels.instance }} has high IO wait time. Check NFS connection."
+    
+    # Дублируем проверку времени (на всякий случай, если стандартное правило не сработает)
+    - alert: TimeDrift
+      expr: abs(node_timex_offset_seconds) > 0.5
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "System Time Drift detected"
+        description: "Clock on {{ $labels.instance }} is drifting by more than 0.5s."
+
+  # ----------------------------------------------------
+  # 6. LOKI (Лог-алертинг)
+  # Внимание: Это правила для Prometheus, но основанные на метриках самого Loki
+  # ----------------------------------------------------
+  - name: loki.health
+    rules:
+    - alert: LokiRequestErrors
+      # Если Loki отдает ошибки при записи или чтении
+      expr: 100 * sum(rate(loki_request_duration_seconds_count{status_code=~"5.."}[1m])) / sum(rate(loki_request_duration_seconds_count[1m])) > 10
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Loki Failure"
+        description: "Loki is returning > 10% 5xx errors."
