@@ -209,7 +209,7 @@ Promtail должен стоять на *каждой* ноде, поэтому 
 ```yaml
 config:
   clients:
-    - url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+    - url: http://loki-gateway.monitoring.svc.cluster.local/loki/api/v1/push
       # Если вы включили auth_enabled: true в Loki, тут нужен tenant_id
 
 # Важные настройки для парсинга логов Kubernetes (CRI-O/Containerd)
@@ -218,22 +218,13 @@ snippets:
     - cri: {}
     - docker: {}
 
-# Монтирование путей с логами хоста
-extraVolumeMounts:
-  - name: pods
-    mountPath: /var/log/pods
-    readOnly: true
-extraVolumes:
-  - name: pods
-    hostPath:
-      path: /var/log/pods
 ```
 
 **Установка Promtail:**
 
 ```bash
 helm upgrade --install promtail grafana/promtail \
-  --namespace monitoring \
+  --namespace log \
   -f promtail-values.yaml
 ```
 
