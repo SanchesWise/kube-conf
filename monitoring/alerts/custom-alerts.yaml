@@ -21,11 +21,11 @@ spec:
 
     # Пример 2: Тестовый алерт (всегда срабатывает)
     # Раскомментируйте для проверки связи с Telegram
-    # - alert: TestAlert
-    #   expr: vector(1)
-    #   for: 1m
-    #   labels:
-    #     severity: info
-    #   annotations:
-    #     summary: "Checking Alertmanager"
-    #     message: "This is a test alert to verify Telegram integration."
+    - alert: TestAlert
+      expr: vector(1)
+      for: 1m
+      labels:
+        severity: info
+      annotations:
+        summary: "Checking Alertmanager"
+        message: "This is a test alert to verify Telegram integration."
