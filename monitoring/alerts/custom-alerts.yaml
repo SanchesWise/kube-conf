@@ -1,0 +1,31 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: custom-k8s-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+  - name: custom.rules
+    rules:
+    # Пример 1: Алерт, если MinIO недоступен (нет подов)
+    - alert: MinioDown
+      expr: kube_statefulset_status_replicas_ready{statefulset="minio"} == 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "MinIO Cluster is DOWN"
+        message: "MinIO has 0 ready replicas. S3 storage is unavailable."
+
+    # Пример 2: Тестовый алерт (всегда срабатывает)
+    # Раскомментируйте для проверки связи с Telegram
+    # - alert: TestAlert
+    #   expr: vector(1)
+    #   for: 1m
+    #   labels:
+    #     severity: info
+    #   annotations:
+    #     summary: "Checking Alertmanager"
+    #     message: "This is a test alert to verify Telegram integration."
