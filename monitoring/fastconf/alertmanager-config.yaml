@@ -24,7 +24,7 @@ alertmanager:
     - name: 'telegram-receiver'
       telegram_configs:
       # 👇 ВАШИ ДАННЫЕ
-      - bot_token: '1808066068:AAHGMaGCw_z3zSa6Ega93bq5yyOIIx4p4R4'
+      - bot_token: $BOT_ID
         api_url: 'https://api.telegram.org'
         chat_id: -588423214
         parse_mode: 'HTML'
