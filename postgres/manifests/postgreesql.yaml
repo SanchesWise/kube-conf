@@ -60,8 +60,9 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: postgres
-          image: postgres:16.0
+          image: timescale/timescaledb:latest-pg16
           imagePullPolicy: "IfNotPresent"
+          args: ["-c", "shared_preload_libraries=timescaledb"]
           ports:
             - containerPort: 5432
               name: postgres-port
