@@ -60,7 +60,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: postgres
-          image: timescale/timescaledb:latest-pg16
+          image: registry-nexus.ccsfarm.local/pg-ts-vector:latest
           imagePullPolicy: "IfNotPresent"
           args: ["-c", "shared_preload_libraries=timescaledb"]
           ports:
