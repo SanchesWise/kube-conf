@@ -1,58 +1,67 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: minio-creds-backup
+  namespace: postgres          # ВАЖНО: Кладем к базе данных
+type: Opaque
+stringData:
+  # Данные от твоего MinIO (те же, что и в основном секрете)
+  access-key: "admin" 
+  secret-key: "password"
+---
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: postgres-backup-to-s3
-  namespace: prod # Или где у тебя живет база
+  name: db-backup-s3
+  namespace: postgres
 spec:
-  schedule: "0 2 * * *" # Каждый день в 2:00 ночи
+  schedule: "0 3 * * *" # Каждый день в 3:00 ночи
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1
+  concurrencyPolicy: Forbid
   jobTemplate:
     spec:
       template:
         spec:
+          # Если образ лежит в приватном Nexus, нужен imagePullSecrets
+          # imagePullSecrets:
+          #   - name: nexus-docker-secret 
           containers:
           - name: backup
-            # Используем образ с aws-cli и pg_dump
-            image: bitnami/postgresql:16
-            command: ["/bin/sh", "-c"]
-            args:
-              - |
-                set -e
-                echo "Starting backup..."
-                
-                # 1. Формируем имя файла
-                FILENAME=db_backup_$(date +%Y-%m-%d_%H-%M).sql.gz
-                
-                # 2. Делаем дамп и сжимаем на лету
-                # PGPASSWORD берется из env
-                pg_dumpall -h postgres-headless -U $POSTGRES_USER | gzip > /tmp/$FILENAME
-                
-                echo "Backup created: size $(du -h /tmp/$FILENAME | cut -f1)"
-                
-                # 3. Устанавливаем MinIO Client (mc) или используем curl/aws-cli
-                # Тут простой вариант через curl (REST API MinIO)
-                # Вычисляем сигнатуру или просто используем s3cmd/aws-cli если они есть в образе.
-                # НО! Проще всего в alpine установить aws-cli.
-                
-                # Чтобы не усложнять скрипт, используем готовый образ с AWS CLI,
-                # но нам нужен и pg_dump. Поэтому сделаем chained-контейнеры или простой скрипт на python.
-                
-                # ДАВАЙ ПРОЩЕ: Используем образ minio/mc, но в нем нет pg_dump.
-                # Комбинированный вариант:
-                
-            envFrom:
-            - secretRef:
-                name: postgres-secret
-            - secretRef:
-                name: minio-creds
-          
-          # РЕКОМЕНДУЕМЫЙ ВАРИАНТ:
-          # Использовать готовый docker-образ для бэкапов pg->s3
-          # Например: prodrigestivill/postgres-backup-local
-          # Но у нас свой MinIO.
-          
-          # Давай напишем чистовой вариант на Python (у тебя python-пайплайн отлажен)
-          # Это будет Sidecar или Job
-          
+            # Твой собранный образ
+            image: registry-nexus.ccsfarm.local/pg-backup:latest
+            imagePullPolicy: Always
+            
+            # Переменные конфигурации
+            env:
+            - name: DB_HOST
+              value: "postgres-np" # Сервис внутри этого же NS
+            - name: MINIO_ENDPOINT
+              # Полный путь, так как MinIO в другом NS
+              value: "minio.minio.svc.cluster.local:9000" 
+            
+            # Секреты БД (из родного секрета базы)
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+            
+            # Секреты MinIO (из копии, созданной на Шаге 1)
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-creds-backup
+                  key: access-key
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-creds-backup
+                  key: secret-key
+                  
           restartPolicy: OnFailure
