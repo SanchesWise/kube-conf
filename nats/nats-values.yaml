@@ -1,0 +1,27 @@
+config:
+  cluster:
+    enabled: true
+    replicas: 3
+  jetstream:
+    enabled: true
+    fileStore:
+      pvc:
+        enabled: true
+        size: 10Gi
+        # Явно указываем longhorn, хотя он и так теперь дефолтный
+        storageClassName: "longhorn" 
+    memoryStore:
+      enabled: true
+      maxSize: 1Gi
+
+# Сервис для доступа внутри кластера
+service:
+  enabled: true
+
+# Мониторинг
+promExporter:
+  enabled: true
+  podMonitor:
+    enabled: true
+    labels:
+      release: kube-prometheus-stack
