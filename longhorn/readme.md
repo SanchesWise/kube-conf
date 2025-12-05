@@ -174,3 +174,113 @@ sudo ./setup_disk.sh
 ```
 
 **Повтори это на всех 4-х воркерах.** После этого можно ставить чарт Longhorn.
+
+Отлично. Раз диски смонтированы в `/mnt/longhorn-storage` на воркерах и `iscsid` запущен, мы готовы к развертыванию.
+
+Самый важный момент сейчас — **указать Longhorn'у использовать именно эту папку**, иначе он начнет писать данные на системный диск (`/var/lib/longhorn` по умолчанию).
+
+### Шаг 1. Добавление репозитория Helm
+
+Выполняй на мастер-ноде:
+
+```bash
+helm repo add longhorn https://charts.longhorn.io
+helm repo update
+```
+
+### Шаг 2. Установка Longhorn
+
+Мы установим Longhorn в неймспейс `longhorn-system`.
+Я подготовил команду с правильными флагами под твою конфигурацию:
+
+1.  `defaultSettings.defaultDataPath`: Указываем твой примонтированный диск `/mnt/longhorn-storage`.
+2.  `persistence.defaultClassReplicaCount`: Ставим **3**. У тебя 4 воркера, три реплики обеспечат отличную отказоустойчивость (одна нода может упасть, данные будут доступны).
+3.  `csi.kubeletRootDir`: Обычно `/var/lib/kubelet`. В RHEL/RedOS это стандарт, но если у тебя кастомный путь кублета, надо поправить (скорее всего, стандартный).
+
+**Команда установки:**
+
+```bash
+helm install longhorn longhorn/longhorn \
+  --namespace longhorn-system \
+  --create-namespace \
+  --set defaultSettings.defaultDataPath="/mnt/longhorn-storage" \
+  --set persistence.defaultClassReplicaCount=3 \
+  --set persistence.reclaimPolicy=Retain \
+  --set defaultSettings.replicaSoftAntiAffinity=false
+```
+
+*   `replicaSoftAntiAffinity=false`: Это **жесткое правило**. Означает "Никогда не класть две копии данных на одну и ту же ноду". У тебя 4 воркера, так что это безопасно и правильно для продакшена.
+
+### Шаг 3. Проверка запуска
+
+Процесс запуска займет 2-5 минут. Longhorn поднимает много компонентов (manager, driver-deployer, csi-plugin, engine-image).
+
+Следи за статусом:
+```bash
+kubectl get pods -n longhorn-system -w
+```
+
+Ты должен увидеть кучу подов. Главное, чтобы `longhorn-manager-*` на воркерах перешли в статус `Running`.
+
+### Шаг 4. Настройка UI (Ingress)
+
+Пока поды поднимаются, создадим доступ к красивой админке Longhorn.
+Там нет встроенной авторизации, поэтому я добавил **Basic Auth** (логин/пароль), чтобы никто чужой не удалил твои диски.
+
+1.  **Создаем файл паролей (htpasswd):**
+    ```bash
+    # Установи утилиту, если нет: dnf install httpd-tools
+    # Создаем юзера admin с паролем (замени password на свой)
+    htpasswd -c auth longhorn admin
+    # Вводи пароль...
+    
+    # Создаем секрет в кубере
+    kubectl create secret generic basic-auth --from-file=auth -n longhorn-system
+    rm auth
+    ```
+
+2.  **Создаем Ingress (`k8s/longhorn-ingress.yaml`):**
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: longhorn-ingress
+  namespace: longhorn-system
+  annotations:
+    # Увеличиваем размер тела для загрузки бэкапов через UI, если понадобится
+    nginx.ingress.kubernetes.io/proxy-body-size: 10000m
+    # Подключаем Basic Auth
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: basic-auth
+    nginx.ingress.kubernetes.io/auth-realm: 'Authentication Required - Longhorn'
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: longhorn.ccsfarm.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: longhorn-frontend
+            port:
+              number: 80
+```
+
+Примени:
+```bash
+kubectl apply -f k8s/longhorn-ingress.yaml
+```
+
+### Шаг 5. Финальная проверка
+
+1.  Открой в браузере `http://longhorn.ccsfarm.local`.
+2.  Введи логин/пароль.
+3.  Ты должен увидеть Dashboard.
+4.  **Самое важное:** Внизу страницы в блоке **Nodes** ты должен увидеть свои воркеры, и у каждого должно быть доступно около **50 GiB** места (Allocatable).
+
+Если видишь 50 GiB — значит Longhorn увидел твои примонтированные диски `/mnt/longhorn-storage`.
+
+**Как только убедишься, что UI работает и место видно — напиши, будем переносить NATS и Postgres на новые быстрые диски.**
