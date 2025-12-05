@@ -43,11 +43,13 @@ for NODE in $MASTERS; do
         mkdir -p ${LOCAL_MOUNT}/etcd-backups
 
         # 3. Создание скрипта бэкапа
-        cat <<EOF > /usr/local/bin/etcd-snapshot.sh
+
+
+cat <<EOF > /usr/local/bin/etcd-snapshot.sh
 #!/bin/bash
 BACKUP_DIR=\"${LOCAL_MOUNT}/etcd-backups\"
 DATE=\$(date +%Y-%m-%d_%H%M%S)
-HOSTNAME=\$(hostname)
+HOSTNAME=$(hostname)
 
 # Проверка, что NFS примонтирован (чтобы не забить локальный диск)
 if ! mountpoint -q ${LOCAL_MOUNT}; then

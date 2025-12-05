@@ -1,0 +1,23 @@
+persistence:
+  # Самое важное: 2 реплики (у нас 4 ноды, 2 копии достаточно и экономно)
+  defaultClassReplicaCount: 2
+
+defaultSettings:
+  # Указываем путь, куда мы примонтировали SSD
+  defaultDataPath: /mnt/longhorn-storage
+  
+  # Разрешаем оверпровижининг (выделять больше места, чем есть, так как не все используют 100%)
+  # 200% - безопасный стандарт (можно выдать 100Гб томов на 50Гб диск, если они пустые)
+  storageOverProvisioningPercentage: 200
+  
+  # Настройки бэкапа сразу при установке
+  backupTarget: s3://longhorn-backups@ru-central1/
+  backupTargetCredentialSecret: minio-secret
+
+ingress:
+  # Включаем UI
+  enabled: true
+  ingressClassName: nginx
+  host: longhorn.ccsfarm.local
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 10000m
