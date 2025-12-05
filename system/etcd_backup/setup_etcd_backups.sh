@@ -46,39 +46,39 @@ for NODE in $MASTERS; do
 
 
         cat <<EOF > /usr/local/bin/etcd-snapshot.sh
-        #!/bin/bash
-        BACKUP_DIR=\"${LOCAL_MOUNT}/etcd-backups\"
-        DATE=\$(date +%Y-%m-%d_%H%M%S)
-        HOSTNAME=$(hostname)
+            #!/bin/bash
+            BACKUP_DIR=\"${LOCAL_MOUNT}/etcd-backups\"
+            DATE=\$(date +%Y-%m-%d_%H%M%S)
+            HOSTNAME=$(hostname)
 
-        # Проверка, что NFS примонтирован (чтобы не забить локальный диск)
-        if ! mountpoint -q ${LOCAL_MOUNT}; then
-            echo \"NFS not mounted, trying to mount...\"
-            mount -a
+            # Проверка, что NFS примонтирован (чтобы не забить локальный диск)
             if ! mountpoint -q ${LOCAL_MOUNT}; then
-                echo \"Critical: Backup storage unavailable\"
+                echo \"NFS not mounted, trying to mount...\"
+                mount -a
+                if ! mountpoint -q ${LOCAL_MOUNT}; then
+                    echo \"Critical: Backup storage unavailable\"
+                    exit 1
+                fi
+            fi
+
+            # Создание снапшота
+            ETCDCTL_API=3 /usr/local/bin/etcdctl \\
+            --endpoints=https://127.0.0.1:2379 \\
+            --cacert=/etc/kubernetes/pki/etcd/ca.crt \\
+            --cert=/etc/kubernetes/pki/etcd/healthcheck-client.crt \\
+            --key=/etc/kubernetes/pki/etcd/healthcheck-client.key \\
+            snapshot save \$BACKUP_DIR/etcd-\$HOSTNAME-\$DATE.db
+
+            # Проверка статуса снапшота
+            if [ \$? -eq 0 ]; then
+                echo \"Backup successful: etcd-\$HOSTNAME-\$DATE.db\"
+                # Удаление старых бэкапов (старше 7 дней)
+                find \$BACKUP_DIR -name \"etcd-\$HOSTNAME*.db\" -mtime +7 -delete
+            else
+                echo \"Backup failed!\"
                 exit 1
             fi
-        fi
-
-        # Создание снапшота
-        ETCDCTL_API=3 /usr/local/bin/etcdctl \\
-        --endpoints=https://127.0.0.1:2379 \\
-        --cacert=/etc/kubernetes/pki/etcd/ca.crt \\
-        --cert=/etc/kubernetes/pki/etcd/healthcheck-client.crt \\
-        --key=/etc/kubernetes/pki/etcd/healthcheck-client.key \\
-        snapshot save \$BACKUP_DIR/etcd-\$HOSTNAME-\$DATE.db
-
-        # Проверка статуса снапшота
-        if [ \$? -eq 0 ]; then
-            echo \"Backup successful: etcd-\$HOSTNAME-\$DATE.db\"
-            # Удаление старых бэкапов (старше 7 дней)
-            find \$BACKUP_DIR -name \"etcd-\$HOSTNAME*.db\" -mtime +7 -delete
-        else
-            echo \"Backup failed!\"
-            exit 1
-        fi
-        EOF
+            EOF
 
         chmod +x /usr/local/bin/etcd-snapshot.sh
 
