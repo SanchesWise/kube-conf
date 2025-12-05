@@ -284,3 +284,74 @@ kubectl apply -f k8s/longhorn-ingress.yaml
 Если видишь 50 GiB — значит Longhorn увидел твои примонтированные диски `/mnt/longhorn-storage`.
 
 **Как только убедишься, что UI работает и место видно — напиши, будем переносить NATS и Postgres на новые быстрые диски.**
+
+Без проблем. Учитывая твою инфраструктуру (Internal CA + Cert-Manager), это делается через стандартные аннотации.
+
+Тебе нужно обновить манифест Ingress. Я добавил секцию `tls` и аннотацию для `cert-manager`, чтобы он автоматически выпустил сертификат для `longhorn.ccsfarm.local`.
+
+### Обновленный `k8s/longhorn-ingress.yaml`
+
+**Важно:** В аннотации `cert-manager.io/cluster-issuer: "ca-issuer"` замени `ca-issuer` на имя твоего эмитента (ClusterIssuer), который смотрит на твой Internal CA. Обычно его называют `ca-issuer`, `internal-ca` или `vault-issuer`.
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: longhorn-ingress
+  namespace: longhorn-system
+  annotations:
+    # --- Настройки Nginx ---
+    # Увеличиваем размер тела (для загрузки бэкапов/образов через UI)
+    nginx.ingress.kubernetes.io/proxy-body-size: 10000m
+    # Принудительный редирект на HTTPS
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    
+    # --- Авторизация (Basic Auth) ---
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: basic-auth
+    nginx.ingress.kubernetes.io/auth-realm: 'Authentication Required - Longhorn'
+    
+    # --- SSL / Cert-Manager ---
+    # Укажи здесь имя твоего ClusterIssuer
+    cert-manager.io/cluster-issuer: "ccsfarm-ca-issuer " 
+spec:
+  ingressClassName: nginx
+  # Секция TLS
+  tls:
+  - hosts:
+    - longhorn.ccsfarm.local
+    # Cert-manager создаст этот секрет автоматически
+    secretName: longhorn-tls-secret
+  rules:
+  - host: longhorn.ccsfarm.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: longhorn-frontend
+            port:
+              number: 80
+```
+
+### Как применить
+
+1.  Примени файл:
+    ```bash
+    kubectl apply -f k8s/longhorn-ingress.yaml
+    ```
+
+2.  Проверь, что сертификат создался (через пару секунд):
+    ```bash
+    kubectl get certificate -n longhorn-system
+    ```
+    Статус должен быть `True`.
+
+3.  Заходи на `https://longhorn.ccsfarm.local`. Браузер должен показать замочек (если CA добавлен в доверенные на твоем компе).
+
+**P.S.** Если ты не помнишь имя своего ClusterIssuer, посмотри список доступных:
+```bash
+kubectl get clusterissuers
+```
+ccsfarm-ca-issuer 

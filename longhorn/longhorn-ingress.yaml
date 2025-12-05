@@ -17,7 +17,7 @@ metadata:
     
     # --- SSL / Cert-Manager ---
     # Укажи здесь имя твоего ClusterIssuer
-    cert-manager.io/cluster-issuer: "ca-issuer" 
+    cert-manager.io/cluster-issuer: "ccsfarm-ca-issuer" 
 spec:
   ingressClassName: nginx
   # Секция TLS
