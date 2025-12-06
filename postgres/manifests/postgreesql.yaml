@@ -45,16 +45,16 @@ stringData:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  namespace: postgres  
+  namespace: postgres
   name: postgres
 spec:
   selector:
     matchLabels:
-      app: postgres 
+      app: postgres
       version: "16.0"
   serviceName: postgres-headless
-  replicas: 1 
-  minReadySeconds: 10 
+  replicas: 1
+  minReadySeconds: 10
   template:
     metadata:
       labels:
@@ -62,6 +62,25 @@ spec:
         version: "16.0"
     spec:
       terminationGracePeriodSeconds: 30
+      
+      # --- ДОБАВЛЕНО: InitContainer для прав доступа ---
+      initContainers:
+      - name: init-permissions
+        image: busybox:latest
+        command: ["sh", "-c", "chown -R 1000:1000 /var/lib/postgresql/data"]
+        # UID 1000 или 999, но обычно в образах timescale/postgres это 1000 или 999.
+        # Если не сработает, можно попробовать 'chown -R postgres:postgres ...'
+        # Но busybox может не знать юзера postgres, поэтому лучше ID.
+        # Стандартный официальный postgres - 999. Timescale/Bitnami - часто 1001 или 1000.
+        # Давай попробуем рекурсивно на 5432 (часто) или просто chmod 777 для теста, но лучше chown.
+        # UPD: Timescale docker image runs as user `postgres` with uid 1000 usually.
+        # Если не заработает 1000, попробуй 999.
+        securityContext:
+          runAsUser: 0 # Запускаем от рута, чтобы сменить права
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: postgresdata
+
       containers:
         - name: postgres
           image: registry-nexus.ccsfarm.local/pg-ts-vector:latest
@@ -73,6 +92,13 @@ spec:
           envFrom:
             - secretRef:
                 name: postgres-secret
+          
+          # --- ДОБАВЛЕНО: Переменная PGDATA ---
+          # Говорим постгресу писать в подпапку, чтобы игнорировать lost+found
+          env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+              
           volumeMounts:
             - mountPath: /var/lib/postgresql/data
               name: postgresdata
@@ -84,5 +110,5 @@ spec:
       storageClassName: "longhorn"
       resources:
         requests:
-          storage: 10Gi 
+          storage: 10Gi
  
