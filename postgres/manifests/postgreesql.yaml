@@ -63,20 +63,27 @@ spec:
     spec:
       terminationGracePeriodSeconds: 30
       
-      # --- ДОБАВЛЕНО: InitContainer для прав доступа ---
+      # --- ИСПРАВЛЕННЫЙ INIT CONTAINER ---
       initContainers:
       - name: init-permissions
-        image: busybox:latest
-        command: ["sh", "-c", "chown -R 999:999 /var/lib/postgresql/data"]
-        # UID 1000 или 999, но обычно в образах timescale/postgres это 1000 или 999.
-        # Если не сработает, можно попробовать 'chown -R postgres:postgres ...'
-        # Но busybox может не знать юзера postgres, поэтому лучше ID.
-        # Стандартный официальный postgres - 999. Timescale/Bitnami - часто 1001 или 1000.
-        # Давай попробуем рекурсивно на 5432 (часто) или просто chmod 777 для теста, но лучше chown.
-        # UPD: Timescale docker image runs as user `postgres` with uid 1000 usually.
-        # Если не заработает 1000, попробуй 999.
+        # Используем Т ТОТ ЖЕ образ, что и база. В нем точно есть юзер postgres.
+        image: registry-nexus.ccsfarm.local/pg-ts-vector:latest
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "Preparing data directory..."
+            # 1. Явно создаем подпапку (от рута это сработает)
+            mkdir -p /var/lib/postgresql/data/pgdata
+            
+            # 2. Выставляем права (700 = только владелец может читать/писать)
+            chmod 700 /var/lib/postgresql/data/pgdata
+            
+            # 3. Отдаем папку владельцу (в этом образе user 'postgres' существует)
+            chown -R postgres:postgres /var/lib/postgresql/data
+            
+            echo "Permissions fixed."
         securityContext:
-          runAsUser: 0 # Запускаем от рута, чтобы сменить права
+          runAsUser: 0 # Запускаем от рута, чтобы иметь право на chown
         volumeMounts:
         - mountPath: /var/lib/postgresql/data
           name: postgresdata
@@ -93,8 +100,7 @@ spec:
             - secretRef:
                 name: postgres-secret
           
-          # --- ДОБАВЛЕНО: Переменная PGDATA ---
-          # Говорим постгресу писать в подпапку, чтобы игнорировать lost+found
+          # Указываем путь к той папке, которую создали в init-контейнере
           env:
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
@@ -111,4 +117,3 @@ spec:
       resources:
         requests:
           storage: 10Gi
- 
