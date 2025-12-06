@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: migration-helper
+  namespace: prod # МЕНЯЙ NAMESPACE ПРИ НЕОБХОДИМОСТИ
+spec:
+  restartPolicy: Never
+  # Важно: запускаем от рута, чтобы rsync сохранил владельцев файлов (chown)
+  securityContext:
+    runAsUser: 0
+    fsGroup: 0
+  containers:
+  - name: migration
+    image: alpine:latest
+    command: ["/bin/sh", "-c"]
+    args:
+      - apk add --no-cache rsync &&
+        echo "Starting migration..." &&
+        # Флаг -a (archive) сохраняет права, таймстампы и владельцев
+        # Флаг -v (verbose) показывает прогресс
+        # Флаг --delete удаляет в целевом лишнее (для чистоты)
+        rsync -av --progress /source/ /dest/ &&
+        echo "Migration finished!" &&
+        ls -la /dest
+    volumeMounts:
+    - name: source-old
+      mountPath: /source
+    - name: dest-new
+      mountPath: /dest
+  volumes:
+  - name: source-old
+    persistentVolumeClaim:
+      claimName: DATA-OLD-PVC-NAME # <--- СЮДА ВПИШЕМ ИМЯ СТАРОГО PVC
+  - name: dest-new
+    persistentVolumeClaim:
+      claimName: DATA-NEW-PVC-NAME # <--- СЮДА ВПИШЕМ ИМЯ НОВОГО PVC
