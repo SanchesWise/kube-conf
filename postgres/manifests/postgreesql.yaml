@@ -1,6 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
+  namespace: postgres  
   name: postgres-headless
   labels:
     app: postgres
@@ -17,6 +18,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  namespace: postgres  
   name: postgres-np
   labels:
     app: postgres
@@ -33,6 +35,7 @@ spec:
 apiVersion: v1
 kind: Secret
 metadata:
+  namespace: postgres  
   name: postgres-secret
 type: Opaque
 stringData:
@@ -42,6 +45,7 @@ stringData:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
+  namespace: postgres  
   name: postgres
 spec:
   selector:
