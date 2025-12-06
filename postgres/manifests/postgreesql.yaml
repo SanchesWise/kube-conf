@@ -67,7 +67,7 @@ spec:
       initContainers:
       - name: init-permissions
         image: busybox:latest
-        command: ["sh", "-c", "chown -R 1000:1000 /var/lib/postgresql/data"]
+        command: ["sh", "-c", "chown -R 999:999 /var/lib/postgresql/data"]
         # UID 1000 или 999, но обычно в образах timescale/postgres это 1000 или 999.
         # Если не сработает, можно попробовать 'chown -R postgres:postgres ...'
         # Но busybox может не знать юзера postgres, поэтому лучше ID.
