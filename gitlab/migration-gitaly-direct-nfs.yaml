@@ -1,0 +1,53 @@
+# migration-gitaly-direct-nfs.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gitaly-migration
+  namespace: gitlab
+spec:
+  restartPolicy: Never
+  securityContext:
+    runAsUser: 0
+    fsGroup: 0
+  containers:
+  - name: migrator
+    image: alpine:latest
+    command: ["/bin/sh", "-c"]
+    args:
+      - |
+        apk add --no-cache rsync nfs-utils
+        
+        echo "Mounting NFS..."
+        mkdir -p /nfs-source
+        
+        # Монтируем NFS напрямую
+        mount -t nfs -o ro 10.10.1.53:/tank01/VM_storage /nfs-source
+        
+        if [ ! -d "/nfs-source/gitlab-repo-data-gitlab-gitaly-0-pvc-67801263-4609-41f1-b600-d0f97c745564" ]; then
+          echo "❌ NFS path not found!"
+          exit 1
+        fi
+        
+        echo "Starting migration..."
+        rsync -av --progress \
+          /nfs-source/gitlab-repo-data-gitlab-gitaly-0-pvc-67801263-4609-41f1-b600-d0f97c745564/ \
+          /longhorn/
+        
+        if [ $? -eq 0 ]; then
+          echo "✅ Migration completed!"
+          du -sh /nfs-source/gitlab-repo-data-gitlab-gitaly-0-pvc-67801263-4609-41f1-b600-d0f97c745564
+          du -sh /longhorn
+        else
+          echo "❌ Migration failed!"
+          exit 1
+        fi
+        
+        # Unmount
+        umount /nfs-source
+    volumeMounts:
+    - name: longhorn-new
+      mountPath: /longhorn
+  volumes:
+  - name: longhorn-new
+    persistentVolumeClaim:
+      claimName: repo-data-gitlab-gitaly-0

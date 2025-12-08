@@ -476,3 +476,176 @@ helm upgrade gitlab gitlab/gitlab -n gitlab -f gl-values.yaml
 * [Rutube](https://rutube.ru/video/c1c366f5bf2430541041838f009f0594/)
 * [Zen](https://dzen.ru/video/watch/64be1959dff44977f6bf675e)
 * [Youtube](https://youtu.be/mQAdGy9YOBg)
+
+Миграция **Gitaly** (хранилище репозиториев GitLab) немного сложнее, чем базы данных, потому что это StatefulSet, и он жестко привязан к именам PVC.
+
+**Проблема:** StatefulSet всегда ищет PVC с именем вида `repo-data-gitlab-gitaly-0`. Мы не можем просто сказать ему "используй другой диск". Нам нужно подменить диск, сохранив имя PVC.
+
+### План миграции (Стратегия "Подмена на лету")
+
+1.  Остановить Gitaly.
+2.  Узнать параметры старого NFS-тома (IP и Путь), чтобы смонтировать его напрямую для копирования.
+3.  Удалить старый PVC (NFS).
+4.  Создать новый PVC с **тем же именем**, но на Longhorn.
+5.  Скопировать данные со старого NFS (через прямой маунт) на новый Longhorn.
+6.  Запустить Gitaly.
+
+---
+
+### Шаг 1. Сбор информации и Остановка
+
+1.  Найди имя PVC, который использует Gitaly:
+    ```bash
+    kubectl get pvc -n gitlab
+    # Скорее всего это: repo-data-gitlab-gitaly-0
+    ```
+
+2.  Узнай параметры NFS (IP и Путь), где лежат данные прямо сейчас.
+    Выполни команду, подставив имя PVC:
+    ```bash
+    kubectl get pv $(kubectl get pvc repo-data-gitlab-gitaly-0 -n gitlab -o jsonpath='{.spec.volumeName}') -o jsonpath='{.spec.nfs}'
+    ```
+    *Ты получишь что-то вроде:* `{"path":"/export/pvc-abc-123...","server":"10.10.10.10"}`.
+    **Запиши эти данные! Они нужны для копирования.**
+
+3.  Останови Gitaly (масштабируем в 0):
+    ```bash
+    kubectl scale statefulset gitlab-gitaly -n gitlab --replicas=0
+    ```
+
+---
+
+### Шаг 2. Замена PVC
+
+Нам нужно удалить старую "ссылку" на диск и создать новую, ведущую на Longhorn.
+
+1.  **Удали старый PVC:**
+    *(Не бойся, сами данные на NFS останутся, если это managed-nfs, но мы их сейчас всё равно скопируем. Если у тебя настроен ReclaimPolicy: Delete, данные удалятся, но мы уже остановили запись).*
+    *Лучше перестраховаться:* Если боишься, что NFS удалит файлы при удалении PVC, зайди на NFS-сервер и скопируй папку. Но обычно при миграции мы полагаемся на то, что сможем смонтировать PV даже после удаления PVC, если быстро, либо монтируем через прямой NFS.
+
+    ```bash
+    kubectl delete pvc repo-data-gitlab-gitaly-0 -n gitlab
+    ```
+
+2.  **Создай новый PVC (Longhorn):**
+    Создай файл `gitaly-new-pvc.yaml` (подставь размер как у старого, обычно 10Gi или 50Gi):
+
+    ```yaml
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: repo-data-gitlab-gitaly-0  # ВАЖНО: Имя должно быть ТОЧНО таким же
+      namespace: gitlab
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      storageClassName: longhorn       # Теперь используем быстрый диск
+      resources:
+        requests:
+          storage: 50Gi                # Укажи свой размер
+    ```
+    
+    Примени:
+    ```bash
+    kubectl apply -f gitaly-new-pvc.yaml
+    ```
+
+---
+
+### Шаг 3. Копирование данных (Migration Pod)
+
+Теперь у нас есть пустой Longhorn диск под именем `repo-data-gitlab-gitaly-0`. Нам нужно залить туда данные со старого NFS.
+
+Создай файл `gitaly-migration.yaml`.
+**Вставь сюда свои `server` и `path` из Шага 1!**
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gitaly-migrator
+  namespace: gitlab
+spec:
+  restartPolicy: Never
+  securityContext:
+    runAsUser: 0 # Root нужен для rsync с сохранением владельцев
+    fsGroup: 0
+  containers:
+  - name: sync
+    image: alpine:latest
+    command: ["/bin/sh", "-c"]
+    args:
+      - apk add --no-cache rsync &&
+        echo "Starting Gitaly migration..." &&
+        # Копируем содержимое старого диска на новый
+        # Флаги -avHAXW сохраняют все права, владельцев и ссылки
+        rsync -avHAXW --progress /source/ /dest/ &&
+        echo "Migration DONE!" &&
+        ls -la /dest
+    volumeMounts:
+    - name: source-nfs
+      mountPath: /source
+    - name: dest-longhorn
+      mountPath: /dest
+  volumes:
+  - name: dest-longhorn
+    persistentVolumeClaim:
+      claimName: repo-data-gitlab-gitaly-0 # Наш новый пустой диск
+  - name: source-nfs
+    nfs:
+      server: 10.10.X.X           # <--- ВСТАВЬ IP NFS СЕРВЕРА
+      path: /export/pvc-old-path  # <--- ВСТАВЬ ПУТЬ СТАРОГО ТОМА
+```
+
+1.  Запусти под:
+    ```bash
+    kubectl apply -f gitaly-migration.yaml
+    ```
+2.  Следи за логами:
+    ```bash
+    kubectl logs -f gitaly-migrator -n gitlab
+    ```
+3.  Когда увидишь `Migration DONE`, удали под:
+    ```bash
+    kubectl delete pod gitaly-migrator -n gitlab
+    ```
+
+---
+
+### Шаг 4. Обновление манифеста и Запуск
+
+Теперь самое важное. Если ты просто запустишь старый StatefulSet, он может иметь старую конфигурацию `volumeClaimTemplates` (которую нельзя менять).
+
+Тебе нужно обновить определение StatefulSet, чтобы в будущем он знал, что мы переехали на Longhorn.
+
+1.  **Отредактируй StatefulSet:**
+    ```bash
+    kubectl edit sts gitlab-gitaly -n gitlab
+    ```
+    Найди секцию `volumeClaimTemplates` и измени `storageClassName` с `managed-nfs-storage` на `longhorn`.
+    
+    *Если Kubernetes ругается, что "updates to statefulset spec for fields other than ... are forbidden" (изменять storage class нельзя):*
+    
+    Тебе придется пересоздать StatefulSet **без удаления подов** (хотя подов у нас и так 0).
+    ```bash
+    # Удаляем только объект StatefulSet (PVC останется)
+    kubectl delete sts gitlab-gitaly -n gitlab --cascade=orphan
+    ```
+    
+    Теперь примени манифест Gitaly заново (если ты ставил через Helm — просто сделай `helm upgrade`). Helm увидит, что PVC уже есть (наш новый, на Longhorn) и просто подключит его.
+
+2.  **Запуск:**
+    Если ты не удалял STS, просто верни реплики:
+    ```bash
+    kubectl scale statefulset gitlab-gitaly -n gitlab --replicas=1
+    ```
+
+### Шаг 5. Проверка
+
+Когда под `gitlab-gitaly-0` станет `Running`:
+1.  Зайди в интерфейс GitLab.
+2.  Открой любой репозиторий.
+3.  Если код на месте, коммиты видны, и `git clone` работает — миграция прошла успешно!
+
+**Нюанс с `lost+found`:**
+Как и в случае с Postgres, Longhorn создаст папку `lost+found` в корне. Gitaly обычно хранит репозитории в корне. Если Gitaly откажется стартовать из-за "неизвестной папки", тебе придется добавить `initContainer`, который удаляет эту папку или меняет права, но обычно Gitaly её игнорирует.
