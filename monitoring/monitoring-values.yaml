@@ -32,6 +32,9 @@ prometheus:
     # Хранилище для метрик
     storageSpec:
       volumeClaimTemplate:
+        metadata:
+          annotations:
+            longhorn.io/number-of-replicas: "1"      
         spec:
           storageClassName: longhorn
           accessModes: ["ReadWriteOnce"]
