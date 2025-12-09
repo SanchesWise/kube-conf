@@ -37,7 +37,7 @@ prometheus:
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
-              storage: 310Gi
+              storage: 30Gi
     
     # ВАЖНО: Разрешаем Прометеусу искать ServiceMonitor в других неймспейсах
     # Без этого он не увидит Redis/Postgres/Cert-manager
