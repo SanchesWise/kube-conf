@@ -15,7 +15,7 @@ grafana:
   
   persistence:
     enabled: true
-    storageClassName: managed-nfs-storage
+    storageClassName: longhorn
     size: 10Gi
 
   # Дополнительные плагины (опционально)
@@ -33,11 +33,11 @@ prometheus:
     storageSpec:
       volumeClaimTemplate:
         spec:
-          storageClassName: managed-nfs-storage
+          storageClassName: longhorn
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
-              storage: 50Gi
+              storage: 30Gi
     
     # ВАЖНО: Разрешаем Прометеусу искать ServiceMonitor в других неймспейсах
     # Без этого он не увидит Redis/Postgres/Cert-manager
@@ -100,7 +100,7 @@ alertmanager:
     storage:
       volumeClaimTemplate:
         spec:
-          storageClassName: managed-nfs-storage
+          storageClassName: longhorn
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
