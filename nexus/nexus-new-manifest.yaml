@@ -1,0 +1,307 @@
+# ============================================================================
+# Nexus 3 с разделением хранилищ
+# БД (OrientDB) → Longhorn | Блобы → MinIO S3
+# ============================================================================
+
+---
+# 1. Создаём Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nexus
+
+
+---
+# 2a. PVC для БД (Longhorn, SSD)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nexus-db
+  namespace: nexus
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 5Gi
+
+
+---
+# 2b. Small PVC для конфигов и логов (опционально, может быть на NFS)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nexus-config
+  namespace: nexus
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 1Gi
+
+
+---
+# 3. Secret для доступа к MinIO S3
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nexus-minio-credentials
+  namespace: nexus
+type: Opaque
+stringData:
+  MINIO_ACCESS_KEY: nexus
+  MINIO_SECRET_KEY: FeerDe3o
+
+
+---
+# 4. ConfigMap с конфигурацией nexus.properties
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nexus-properties
+  namespace: nexus
+data:
+  nexus.properties: |
+    # Путь к базе данных (на Longhorn)
+    nexus-work=${karaf.data}
+    nexus-taskexecution-threads=4
+    nexus.scripts.allowCreation=true
+    
+    # Оптимизация для S3
+    nexus.blobstore.s3.chunksize=5242880
+    nexus.blobstore.s3.multipartupload.threshold=10485760
+    
+    # LDAP/Realms (опционально)
+    # nexus.ldap.enabled=true
+
+
+---
+# 5. ConfigMap для groovy скрипта инициализации (опционально, для автоматизации)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nexus-init-script
+  namespace: nexus
+data:
+  init-s3-stores.groovy: |
+    // Автоматическая инициализация S3 Blob Stores при первом старте
+    // Копируем в /nexus-data/scripts/init.d/ или выполняем через REST API
+    
+    import org.sonatype.nexus.blobstore.s3.S3BlobStoreConfiguration
+    import org.sonatype.nexus.blobstore.api.BlobStoreManager
+    
+    // Создание Docker Blob Store на S3
+    blobStoreManager.create(new S3BlobStoreConfiguration()
+      .name("nexus-docker-blob")
+      .bucket("nexus-docker-blob")
+      .region("us-east-1")
+      .endpoint("http://minio.minio.svc.cluster.local:9000")
+      .accessKeyId("nexus")
+      .secretAccessKey("FeerDe3o")
+      .forcePathStyle(true)
+    )
+    
+    // Создание Maven Blob Store на S3
+    blobStoreManager.create(new S3BlobStoreConfiguration()
+      .name("nexus-maven-blob")
+      .bucket("nexus-maven-blob")
+      .region("us-east-1")
+      .endpoint("http://minio.minio.svc.cluster.local:9000")
+      .accessKeyId("nexus")
+      .secretAccessKey("FeerDe3o")
+      .forcePathStyle(true)
+    )
+
+
+---
+# 6. Основное приложение (Deployment)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nexus
+  namespace: nexus
+  labels:
+    app: nexus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nexus
+  template:
+    metadata:
+      labels:
+        app: nexus
+    spec:
+      # Init-контейнер для инициализации директорий
+      initContainers:
+        - name: fix-permissions
+          image: busybox:1.36
+          command: 
+            - sh
+            - -c
+            - |
+              mkdir -p /nexus-data/blobs
+              mkdir -p /nexus-data/db
+              mkdir -p /nexus-data/log
+              mkdir -p /nexus-data/tmp
+              mkdir -p /nexus-config
+              chown -R 200:200 /nexus-data /nexus-config
+              chmod -R 755 /nexus-data /nexus-config
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: nexus-db
+              mountPath: /nexus-data
+            - name: nexus-config
+              mountPath: /nexus-config
+
+      containers:
+        - name: nexus
+          image: sonatype/nexus3:3.70.1
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 200
+            runAsGroup: 200
+          ports:
+            - containerPort: 8081
+              name: ui
+            - containerPort: 8082
+              name: docker-hosted
+          
+          # Переменные окружения для S3
+          env:
+            - name: NEXUS_CONTEXT
+              value: "/"
+            - name: INSTALL4J_ADD_VM_PARAMS
+              value: >
+                -Xms2g
+                -Xmx3g
+                -XX:+UseG1GC
+                -XX:MaxGCPauseMillis=50
+                -XX:+ParallelRefProcEnabled
+          
+          # Подмонтировать конфиги
+          volumeMounts:
+            - name: nexus-db
+              mountPath: /nexus-data
+            - name: nexus-config
+              mountPath: /nexus-config
+            - name: nexus-properties
+              mountPath: /nexus-data/etc
+          
+          # Ресурсы
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "500m"
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
+          
+          # Пробы живучести (Nexus долго стартует)
+          livenessProbe:
+            httpGet:
+              path: /service/rest/v1/status
+              port: 8081
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            failureThreshold: 6
+            timeoutSeconds: 5
+          
+          readinessProbe:
+            httpGet:
+              path: /service/rest/v1/status
+              port: 8081
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            failureThreshold: 6
+            timeoutSeconds: 5
+
+      volumes:
+        - name: nexus-db
+          persistentVolumeClaim:
+            claimName: nexus-db
+        - name: nexus-config
+          persistentVolumeClaim:
+            claimName: nexus-config
+        - name: nexus-properties
+          configMap:
+            name: nexus-properties
+            items:
+              - key: nexus.properties
+                path: nexus.properties
+
+
+---
+# 7. Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: nexus-service
+  namespace: nexus
+  labels:
+    app: nexus
+spec:
+  selector:
+    app: nexus
+  type: ClusterIP
+  ports:
+    - name: ui
+      port: 8081
+      targetPort: 8081
+      protocol: TCP
+    - name: docker
+      port: 8082
+      targetPort: 8082
+      protocol: TCP
+
+
+---
+# 8. Ingress (Маршрутизация)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nexus-ingress
+  namespace: nexus
+  annotations:
+    # Критически важные настройки для Docker Registry
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "900"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "900"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    # Отключить request body checking (для больших образов)
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Content-Type, Authorization"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - registry-nexus.ccsfarm.local
+        - nexus.ccsfarm.local
+      secretName: nexus-tls-secret
+  rules:
+    # Хост для UI админки
+    - host: nexus.ccsfarm.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nexus-service
+                port:
+                  number: 8081
+    # Хост для команд docker push/pull
+    - host: registry-nexus.ccsfarm.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nexus-service
+                port:
+                  number: 8082
