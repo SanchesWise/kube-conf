@@ -1,7 +1,7 @@
 # ============================================================================
-# Nexus 3 с разделением хранилищ (ИСПРАВЛЕННЫЙ v2)
+# Nexus 3 с разделением хранилищ (ИСПРАВЛЕННЫЙ v3)
 # БД (OrientDB) → Longhorn | Блобы → MinIO S3
-# Проблема: ConfigMap не должен мешать писать в /nexus-data/etc
+# Исправлена скрипт init-контейнера
 # ============================================================================
 
 ---
@@ -70,15 +70,16 @@ spec:
           command: 
             - sh
             - -c
-            - |
-              mkdir -p /nexus-data/blobs
-              mkdir -p /nexus-data/db
-              mkdir -p /nexus-data/log
-              mkdir -p /nexus-data/tmp
-              mkdir -p /nexus-data/etc
-              mkdir -p /nexus-config
-              chown -R 200:200 /nexus-data /nexus-config
-              chmod -R 755 /nexus-data /nexus-config
+            - >
+              mkdir -p /nexus-data/blobs &&
+              mkdir -p /nexus-data/db &&
+              mkdir -p /nexus-data/log &&
+              mkdir -p /nexus-data/tmp &&
+              mkdir -p /nexus-data/etc &&
+              mkdir -p /nexus-config &&
+              chown -R 200:200 /nexus-data /nexus-config &&
+              chmod -R 755 /nexus-data /nexus-config &&
+              echo "Permissions fixed successfully"
           securityContext:
             runAsUser: 0
           volumeMounts:
@@ -112,7 +113,7 @@ spec:
                 -XX:MaxGCPauseMillis=50
                 -XX:+ParallelRefProcEnabled
           
-          # Подмонтировать тома (БЕЗ ConfigMap!)
+          # Подмонтировать тома
           volumeMounts:
             - name: nexus-db
               mountPath: /nexus-data
