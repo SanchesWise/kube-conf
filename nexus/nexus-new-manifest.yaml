@@ -1,7 +1,6 @@
 # ============================================================================
-# Nexus 3 с разделением хранилищ (ИСПРАВЛЕННЫЙ v3)
+# Nexus 3 с разделением хранилищ + Self-Signed TLS сертификат
 # БД (OrientDB) → Longhorn | Блобы → MinIO S3
-# Исправлена скрипт init-контейнера
 # ============================================================================
 
 ---
@@ -45,7 +44,27 @@ spec:
 
 
 ---
-# 3. Основное приложение (Deployment)
+# 3. Certificate для Nexus (self-signed via ccsfarm-ca-issuer)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nexus-tls
+  namespace: nexus
+spec:
+  secretName: nexus-tls-secret
+  duration: 8760h # 1 год
+  renewBefore: 720h # 30 дней до истечения
+  commonName: nexus.ccsfarm.local
+  dnsNames:
+    - nexus.ccsfarm.local
+    - registry-nexus.ccsfarm.local
+  issuerRef:
+    name: ccsfarm-ca-issuer
+    kind: ClusterIssuer
+
+
+---
+# 4. Основное приложение (Deployment)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -124,6 +143,7 @@ spec:
           resources:
             requests:
               memory: "1.5Gi"
+              memory: "1.5Gi"
               cpu: "500m"
             limits:
               memory: "3Gi"
@@ -158,7 +178,7 @@ spec:
 
 
 ---
-# 4. Service
+# 5. Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -182,13 +202,17 @@ spec:
 
 
 ---
-# 5. Ingress (Маршрутизация)
+# 6. Ingress (Маршрутизация с Self-Signed TLS)
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: nexus-ingress
   namespace: nexus
   annotations:
+    # cert-manager annotations для self-signed
+    cert-manager.io/issuer-group: cert-manager.io
+    cert-manager.io/issuer-kind: ClusterIssuer
+    cert-manager.io/issuer-name: ccsfarm-ca-issuer
     # Критически важные настройки для Docker Registry
     nginx.ingress.kubernetes.io/proxy-body-size: "0"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "900"
@@ -197,13 +221,15 @@ metadata:
     # Отключить request body checking (для больших образов)
     nginx.ingress.kubernetes.io/enable-cors: "true"
     nginx.ingress.kubernetes.io/cors-allow-headers: "Content-Type, Authorization"
+    # Перенаправлять HTTP на HTTPS
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
 spec:
   ingressClassName: nginx
   tls:
     - hosts:
         - registry-nexus.ccsfarm.local
         - nexus.ccsfarm.local
-      secretName: nexus-tls-secret
+      secretName: nexus-tls-secret  # ✅ TLS Secret из Certificate (self-signed)
   rules:
     # Хост для UI админки
     - host: nexus.ccsfarm.local
