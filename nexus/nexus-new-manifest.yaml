@@ -1,6 +1,7 @@
 # ============================================================================
-# Nexus 3 с разделением хранилищ
+# Nexus 3 с разделением хранилищ (ИСПРАВЛЕННЫЙ v2)
 # БД (OrientDB) → Longhorn | Блобы → MinIO S3
+# Проблема: ConfigMap не должен мешать писать в /nexus-data/etc
 # ============================================================================
 
 ---
@@ -28,7 +29,7 @@ spec:
 
 
 ---
-# 2b. Small PVC для конфигов и логов (опционально, может быть на NFS)
+# 2b. Small PVC для конфигов и логов
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -44,80 +45,7 @@ spec:
 
 
 ---
-# 3. Secret для доступа к MinIO S3
-apiVersion: v1
-kind: Secret
-metadata:
-  name: nexus-minio-credentials
-  namespace: nexus
-type: Opaque
-stringData:
-  MINIO_ACCESS_KEY: nexus
-  MINIO_SECRET_KEY: FeerDe3o
-
-
----
-# 4. ConfigMap с конфигурацией nexus.properties
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: nexus-properties
-  namespace: nexus
-data:
-  nexus.properties: |
-    # Путь к базе данных (на Longhorn)
-    nexus-work=${karaf.data}
-    nexus-taskexecution-threads=4
-    nexus.scripts.allowCreation=true
-    
-    # Оптимизация для S3
-    nexus.blobstore.s3.chunksize=5242880
-    nexus.blobstore.s3.multipartupload.threshold=10485760
-    
-    # LDAP/Realms (опционально)
-    # nexus.ldap.enabled=true
-
-
----
-# 5. ConfigMap для groovy скрипта инициализации (опционально, для автоматизации)
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: nexus-init-script
-  namespace: nexus
-data:
-  init-s3-stores.groovy: |
-    // Автоматическая инициализация S3 Blob Stores при первом старте
-    // Копируем в /nexus-data/scripts/init.d/ или выполняем через REST API
-    
-    import org.sonatype.nexus.blobstore.s3.S3BlobStoreConfiguration
-    import org.sonatype.nexus.blobstore.api.BlobStoreManager
-    
-    // Создание Docker Blob Store на S3
-    blobStoreManager.create(new S3BlobStoreConfiguration()
-      .name("nexus-docker-blob")
-      .bucket("nexus-docker-blob")
-      .region("us-east-1")
-      .endpoint("http://minio.minio.svc.cluster.local:9000")
-      .accessKeyId("nexus")
-      .secretAccessKey("FeerDe3o")
-      .forcePathStyle(true)
-    )
-    
-    // Создание Maven Blob Store на S3
-    blobStoreManager.create(new S3BlobStoreConfiguration()
-      .name("nexus-maven-blob")
-      .bucket("nexus-maven-blob")
-      .region("us-east-1")
-      .endpoint("http://minio.minio.svc.cluster.local:9000")
-      .accessKeyId("nexus")
-      .secretAccessKey("FeerDe3o")
-      .forcePathStyle(true)
-    )
-
-
----
-# 6. Основное приложение (Deployment)
+# 3. Основное приложение (Deployment)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -147,6 +75,7 @@ spec:
               mkdir -p /nexus-data/db
               mkdir -p /nexus-data/log
               mkdir -p /nexus-data/tmp
+              mkdir -p /nexus-data/etc
               mkdir -p /nexus-config
               chown -R 200:200 /nexus-data /nexus-config
               chmod -R 755 /nexus-data /nexus-config
@@ -171,34 +100,32 @@ spec:
             - containerPort: 8082
               name: docker-hosted
           
-          # Переменные окружения для S3
+          # Переменные окружения для Java и Nexus
           env:
             - name: NEXUS_CONTEXT
               value: "/"
             - name: INSTALL4J_ADD_VM_PARAMS
               value: >
-                -Xms2g
-                -Xmx3g
+                -Xms1g
+                -Xmx2g
                 -XX:+UseG1GC
                 -XX:MaxGCPauseMillis=50
                 -XX:+ParallelRefProcEnabled
           
-          # Подмонтировать конфиги
+          # Подмонтировать тома (БЕЗ ConfigMap!)
           volumeMounts:
             - name: nexus-db
               mountPath: /nexus-data
             - name: nexus-config
               mountPath: /nexus-config
-            - name: nexus-properties
-              mountPath: /nexus-data/etc
           
           # Ресурсы
           resources:
             requests:
-              memory: "2Gi"
+              memory: "1.5Gi"
               cpu: "500m"
             limits:
-              memory: "4Gi"
+              memory: "3Gi"
               cpu: "2000m"
           
           # Пробы живучести (Nexus долго стартует)
@@ -227,16 +154,10 @@ spec:
         - name: nexus-config
           persistentVolumeClaim:
             claimName: nexus-config
-        - name: nexus-properties
-          configMap:
-            name: nexus-properties
-            items:
-              - key: nexus.properties
-                path: nexus.properties
 
 
 ---
-# 7. Service
+# 4. Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -260,7 +181,7 @@ spec:
 
 
 ---
-# 8. Ingress (Маршрутизация)
+# 5. Ingress (Маршрутизация)
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
