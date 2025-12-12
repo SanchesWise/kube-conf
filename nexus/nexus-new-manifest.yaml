@@ -70,8 +70,6 @@ kind: Deployment
 metadata:
   name: nexus
   namespace: nexus
-  labels:
-    app: nexus
 spec:
   replicas: 1
   selector:
@@ -82,7 +80,6 @@ spec:
       labels:
         app: nexus
     spec:
-      # Init-контейнер для инициализации директорий
       initContainers:
         - name: fix-permissions
           image: busybox:1.36
@@ -97,8 +94,7 @@ spec:
               mkdir -p /nexus-data/etc &&
               mkdir -p /nexus-config &&
               chown -R 200:200 /nexus-data /nexus-config &&
-              chmod -R 755 /nexus-data /nexus-config &&
-              echo "Permissions fixed successfully"
+              chmod -R 755 /nexus-data /nexus-config
           securityContext:
             runAsUser: 0
           volumeMounts:
@@ -106,7 +102,6 @@ spec:
               mountPath: /nexus-data
             - name: nexus-config
               mountPath: /nexus-config
-
       containers:
         - name: nexus
           image: sonatype/nexus3:3.70.1
@@ -117,57 +112,30 @@ spec:
           ports:
             - containerPort: 8081
               name: ui
-            - containerPort: 8082
+            - containerPort: 5000     # <--- ИСПРАВЛЕНО: Теперь официально 5000
               name: docker-hosted
-          
-          # Переменные окружения для Java и Nexus
           env:
             - name: NEXUS_CONTEXT
               value: "/"
             - name: INSTALL4J_ADD_VM_PARAMS
-              value: >
-                -Xms1g
-                -Xmx2g
-                -XX:+UseG1GC
-                -XX:MaxGCPauseMillis=50
-                -XX:+ParallelRefProcEnabled
-          
-          # Подмонтировать тома
+              value: "-Xms1g -Xmx2g -XX:+UseG1GC"
           volumeMounts:
             - name: nexus-db
               mountPath: /nexus-data
             - name: nexus-config
               mountPath: /nexus-config
-          
-          # Ресурсы
-          resources:
-            requests:
-              memory: "1.5Gi"
-              memory: "1.5Gi"
-              cpu: "500m"
-            limits:
-              memory: "3Gi"
-              cpu: "2000m"
-          
-          # Пробы живучести (Nexus долго стартует)
           livenessProbe:
             httpGet:
               path: /service/rest/v1/status
               port: 8081
             initialDelaySeconds: 120
             periodSeconds: 30
-            failureThreshold: 6
-            timeoutSeconds: 5
-          
           readinessProbe:
             httpGet:
               path: /service/rest/v1/status
               port: 8081
             initialDelaySeconds: 120
             periodSeconds: 30
-            failureThreshold: 6
-            timeoutSeconds: 5
-
       volumes:
         - name: nexus-db
           persistentVolumeClaim:
@@ -175,17 +143,12 @@ spec:
         - name: nexus-config
           persistentVolumeClaim:
             claimName: nexus-config
-
-
 ---
-# 5. Service
 apiVersion: v1
 kind: Service
 metadata:
   name: nexus-service
   namespace: nexus
-  labels:
-    app: nexus
 spec:
   selector:
     app: nexus
@@ -196,10 +159,9 @@ spec:
       targetPort: 8081
       protocol: TCP
     - name: docker
-      port: 8082
-      targetPort: 5000
+      port: 8082           # Внешний порт (для Ingress)
+      targetPort: 5000     # Внутренний порт (в Pod)
       protocol: TCP
-
 
 ---
 # 6. Ingress (Маршрутизация с Self-Signed TLS)
