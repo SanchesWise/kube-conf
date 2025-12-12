@@ -89,22 +89,18 @@ spec:
             - >
               mkdir -p /nexus-data/blobs &&
               mkdir -p /nexus-data/db &&
-              mkdir -p /nexus-data/log &&
-              mkdir -p /nexus-data/tmp &&
-              mkdir -p /nexus-data/etc &&
-              mkdir -p /nexus-config &&
-              chown -R 200:200 /nexus-data /nexus-config &&
-              chmod -R 755 /nexus-data /nexus-config
+              mkdir -p /nexus-data/javaprefs &&
+              chown -R 200:200 /nexus-data &&
+              chmod -R 755 /nexus-data
           securityContext:
             runAsUser: 0
           volumeMounts:
             - name: nexus-db
               mountPath: /nexus-data
-            - name: nexus-config
-              mountPath: /nexus-config
       containers:
         - name: nexus
-          image: sonatype/nexus3:3.70.1
+          # Откат на стабильную версию
+          image: sonatype/nexus3:3.69.0
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsUser: 200
@@ -112,37 +108,35 @@ spec:
           ports:
             - containerPort: 8081
               name: ui
-            - containerPort: 5000     # <--- ИСПРАВЛЕНО: Теперь официально 5000
+            - containerPort: 5000
               name: docker-hosted
           env:
             - name: NEXUS_CONTEXT
               value: "/"
+            # ДОБАВЛЕНО: фикс для Java Prefs (лечит ошибки в логах)
             - name: INSTALL4J_ADD_VM_PARAMS
-              value: "-Xms1g -Xmx2g -XX:+UseG1GC"
+              value: "-Xms1g -Xmx2g -XX:+UseG1GC -Djava.util.prefs.userRoot=/nexus-data/javaprefs"
           volumeMounts:
             - name: nexus-db
               mountPath: /nexus-data
-            - name: nexus-config
-              mountPath: /nexus-config
+          # Увеличил таймауты, первый старт долгий
           livenessProbe:
             httpGet:
               path: /service/rest/v1/status
               port: 8081
-            initialDelaySeconds: 120
+            initialDelaySeconds: 180
             periodSeconds: 30
           readinessProbe:
             httpGet:
               path: /service/rest/v1/status
               port: 8081
-            initialDelaySeconds: 120
+            initialDelaySeconds: 180
             periodSeconds: 30
       volumes:
         - name: nexus-db
           persistentVolumeClaim:
             claimName: nexus-db
-        - name: nexus-config
-          persistentVolumeClaim:
-            claimName: nexus-config
+
 ---
 apiVersion: v1
 kind: Service
@@ -157,11 +151,9 @@ spec:
     - name: ui
       port: 8081
       targetPort: 8081
-      protocol: TCP
     - name: docker
-      port: 8082           # Внешний порт (для Ingress)
-      targetPort: 5000     # Внутренний порт (в Pod)
-      protocol: TCP
+      port: 8082           # Внешний
+      targetPort: 5000     # Внутренний
 
 ---
 # 6. Ingress (Маршрутизация с Self-Signed TLS)
