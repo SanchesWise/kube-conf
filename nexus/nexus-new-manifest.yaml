@@ -197,7 +197,7 @@ spec:
       protocol: TCP
     - name: docker
       port: 8082
-      targetPort: 8082
+      targetPort: 5000
       protocol: TCP
 
 
