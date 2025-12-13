@@ -123,7 +123,7 @@ spec:
 ---
 
 apiVersion: cert-manager.io/v1
-  kind: Certificate
+kind: Certificate
 metadata:
   name: nexus-tls
   namespace: nexus
