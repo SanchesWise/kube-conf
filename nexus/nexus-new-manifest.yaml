@@ -74,7 +74,7 @@ spec:
             chown 200:200 /nexus-data/etc/nexus.properties
             chmod 644 /nexus-data/etc/nexus.properties
           volumeMounts:
-          - name: nexus-data
+          - name: nexus-data-ssd
             mountPath: /nexus-data
       containers:
         - name: nexus
