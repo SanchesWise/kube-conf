@@ -50,6 +50,7 @@ spec:
             - >
               mkdir -p /nexus-data/blobs &&
               mkdir -p /nexus-data/javaprefs &&
+              mkdir -p /nexus-data/etc/ &&
               chown -R 200:200 /nexus-data &&
               chmod -R 755 /nexus-data
           securityContext:
