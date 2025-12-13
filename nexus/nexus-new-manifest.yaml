@@ -121,6 +121,25 @@ spec:
       targetPort: 5000  # Внутренний порт
 
 ---
+
+apiVersion: cert-manager.io/v1
+  kind: Certificate
+metadata:
+  name: nexus-tls
+  namespace: nexus
+spec:
+  secretName: nexus-tls-secret
+  duration: 8760h # 1 год
+  renewBefore: 720h # 30 дней до истечения
+  commonName: nexus.ccsfarm.local
+  dnsNames:
+    - nexus.ccsfarm.local
+    - registry-nexus.ccsfarm.local
+  issuerRef:
+    name: ccsfarm-ca-issuer
+    kind: ClusterIssuer
+
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
