@@ -15,10 +15,10 @@ metadata:
 spec:
   accessModes:
     - ReadWriteMany
-  storageClassName: managed-nfs-storage
+  storageClassName: longhorn
   resources:
     requests:
-      storage: 200Gi
+      storage: 10Gi
 
 ---
 # 3. Основное приложение (Deployment)
@@ -69,7 +69,7 @@ spec:
               cpu: "500m"
             limits:
               memory: "4Gi"
-              cpu: "2000m"
+              cpu: "4000m"
           volumeMounts:
             - name: nexus-data
               mountPath: /nexus-data
@@ -156,3 +156,20 @@ spec:
                 name: nexus-service
                 port:
                   number: 8082
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nexus-tls
+  namespace: nexus
+spec:
+  secretName: nexus-tls-secret
+  duration: 8760h # 1 год
+  renewBefore: 720h # 30 дней до истечения
+  commonName: nexus.ccsfarm.local
+  dnsNames:
+    - nexus.ccsfarm.local
+    - registry-nexus.ccsfarm.local
+  issuerRef:
+    name: ccsfarm-ca-issuer
+    kind: ClusterIssuer
