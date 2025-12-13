@@ -92,7 +92,7 @@ spec:
         - name: postgres
           image: registry-nexus.ccsfarm.local/pg-ts-vector:latest
           imagePullPolicy: "IfNotPresent"
-          args: ["-c", "shared_preload_libraries=timescaledb"]
+          args: ["-c", "shared_preload_libraries=timescaledb", "-c", "max_worker_processes=24", "-c", "timescaledb.max_background_workers=16"]
           ports:
             - containerPort: 5432
               name: postgres-port
