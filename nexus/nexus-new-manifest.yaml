@@ -22,7 +22,7 @@ spec:
   storageClassName: longhorn
   resources:
     requests:
-      storage: 20Gi
+      storage: 10Gi
 
 ---
 apiVersion: apps/v1
@@ -57,7 +57,25 @@ spec:
           volumeMounts:
             - name: nexus-data-ssd
               mountPath: /nexus-data
-
+        - name: configure-docker-connector
+          image: busybox:1.36
+          command:
+          - sh
+          - -c
+          - |
+            cat > /nexus-data/etc/nexus.properties << 'EOF'
+            nexus-args=${jetty.etc}/jetty.xml,${jetty.etc}/jetty-https.xml,${jetty.etc}/jetty-requestlog.xml
+            application-port=8081
+            application-port-ssl=8443
+            nexus.docker.enabled=true
+            nexus.docker.v2.enabled=true
+            nexus.docker.v2.port=5000
+            EOF
+            chown 200:200 /nexus-data/etc/nexus.properties
+            chmod 644 /nexus-data/etc/nexus.properties
+          volumeMounts:
+          - name: nexus-data
+            mountPath: /nexus-data
       containers:
         - name: nexus
           image: sonatype/nexus3:3.69.0  # Стабильная версия
@@ -76,7 +94,13 @@ spec:
             # КРИТИЧНО: Фикс ошибки "Could not lock User prefs"
             - name: INSTALL4J_ADD_VM_PARAMS
               value: "-Xms2g -Xmx2g -XX:+UseG1GC -Djava.util.prefs.userRoot=/nexus-data/javaprefs"
-          
+          resources:
+            requests:
+              memory: "100Mi"
+              cpu: "2"
+            limits:
+              memory: "800Mi"
+              cpu: "4"              
           # Увеличенные таймауты
           livenessProbe:
             httpGet:
