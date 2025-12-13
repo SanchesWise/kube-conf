@@ -1,22 +1,20 @@
 # ============================================================================
-# Nexus 3 с разделением хранилищ + Self-Signed TLS сертификат
-# БД (OrientDB) → Longhorn | Блобы → MinIO S3
+# Nexus 3 Architecture: SSD (System) + S3 (Blobs)
 # ============================================================================
 
 ---
-# 1. Создаём Namespace
 apiVersion: v1
 kind: Namespace
 metadata:
   name: nexus
 
-
 ---
-# 2a. PVC для БД (Longhorn, SSD)
+# 1. Быстрый SSD диск только для базы и логов (Longhorn)
+# Блобы здесь храниться НЕ БУДУТ, поэтому 10-20 ГБ хватит с головой.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: nexus-db
+  name: nexus-data-ssd
   namespace: nexus
 spec:
   accessModes:
@@ -24,47 +22,9 @@ spec:
   storageClassName: longhorn
   resources:
     requests:
-      storage: 5Gi
-
-
----
-# 2b. Small PVC для конфигов и логов
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: nexus-config
-  namespace: nexus
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: longhorn
-  resources:
-    requests:
-      storage: 1Gi
-
+      storage: 20Gi
 
 ---
-# 3. Certificate для Nexus (self-signed via ccsfarm-ca-issuer)
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: nexus-tls
-  namespace: nexus
-spec:
-  secretName: nexus-tls-secret
-  duration: 8760h # 1 год
-  renewBefore: 720h # 30 дней до истечения
-  commonName: nexus.ccsfarm.local
-  dnsNames:
-    - nexus.ccsfarm.local
-    - registry-nexus.ccsfarm.local
-  issuerRef:
-    name: ccsfarm-ca-issuer
-    kind: ClusterIssuer
-
-
----
-# 4. Основное приложение (Deployment)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -80,6 +40,7 @@ spec:
       labels:
         app: nexus
     spec:
+      # Init: Исправляем права (нужно только для SSD тома)
       initContainers:
         - name: fix-permissions
           image: busybox:1.36
@@ -88,19 +49,18 @@ spec:
             - -c
             - >
               mkdir -p /nexus-data/blobs &&
-              mkdir -p /nexus-data/db &&
               mkdir -p /nexus-data/javaprefs &&
               chown -R 200:200 /nexus-data &&
               chmod -R 755 /nexus-data
           securityContext:
             runAsUser: 0
           volumeMounts:
-            - name: nexus-db
+            - name: nexus-data-ssd
               mountPath: /nexus-data
+
       containers:
         - name: nexus
-          # Откат на стабильную версию
-          image: sonatype/nexus3:3.69.0
+          image: sonatype/nexus3:3.69.0  # Стабильная версия
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsUser: 200
@@ -108,34 +68,39 @@ spec:
           ports:
             - containerPort: 8081
               name: ui
-            - containerPort: 5000
+            - containerPort: 5000        # Порт для Docker
               name: docker-hosted
           env:
             - name: NEXUS_CONTEXT
               value: "/"
-            # ДОБАВЛЕНО: фикс для Java Prefs (лечит ошибки в логах)
+            # КРИТИЧНО: Фикс ошибки "Could not lock User prefs"
             - name: INSTALL4J_ADD_VM_PARAMS
-              value: "-Xms1g -Xmx2g -XX:+UseG1GC -Djava.util.prefs.userRoot=/nexus-data/javaprefs"
-          volumeMounts:
-            - name: nexus-db
-              mountPath: /nexus-data
-          # Увеличил таймауты, первый старт долгий
+              value: "-Xms2g -Xmx2g -XX:+UseG1GC -Djava.util.prefs.userRoot=/nexus-data/javaprefs"
+          
+          # Увеличенные таймауты
           livenessProbe:
             httpGet:
               path: /service/rest/v1/status
               port: 8081
-            initialDelaySeconds: 180
+            initialDelaySeconds: 120
             periodSeconds: 30
+            failureThreshold: 10
           readinessProbe:
             httpGet:
               path: /service/rest/v1/status
               port: 8081
-            initialDelaySeconds: 180
+            initialDelaySeconds: 120
             periodSeconds: 30
+            failureThreshold: 10
+            
+          volumeMounts:
+            - name: nexus-data-ssd
+              mountPath: /nexus-data
+
       volumes:
-        - name: nexus-db
+        - name: nexus-data-ssd
           persistentVolumeClaim:
-            claimName: nexus-db
+            claimName: nexus-data-ssd
 
 ---
 apiVersion: v1
@@ -152,41 +117,31 @@ spec:
       port: 8081
       targetPort: 8081
     - name: docker
-      port: 8082           # Внешний
-      targetPort: 5000     # Внутренний
+      port: 8082        # Внешний порт (на него смотрит Ingress)
+      targetPort: 5000  # Внутренний порт
 
 ---
-# 6. Ingress (Маршрутизация с Self-Signed TLS)
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: nexus-ingress
   namespace: nexus
   annotations:
-    # cert-manager annotations для self-signed
     cert-manager.io/issuer-group: cert-manager.io
     cert-manager.io/issuer-kind: ClusterIssuer
     cert-manager.io/issuer-name: ccsfarm-ca-issuer
-    # Критически важные настройки для Docker Registry
     nginx.ingress.kubernetes.io/proxy-body-size: "0"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "900"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "900"
     nginx.ingress.kubernetes.io/proxy-buffering: "off"
-    # Отключить request body checking (для больших образов)
-    nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/cors-allow-headers: "Content-Type, Authorization"
-    # Перенаправлять HTTP на HTTPS
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"    
 spec:
   ingressClassName: nginx
   tls:
     - hosts:
         - registry-nexus.ccsfarm.local
         - nexus.ccsfarm.local
-      secretName: nexus-tls-secret  # ✅ TLS Secret из Certificate (self-signed)
+      secretName: nexus-tls-secret
   rules:
-    # Хост для UI админки
     - host: nexus.ccsfarm.local
       http:
         paths:
@@ -197,7 +152,6 @@ spec:
                 name: nexus-service
                 port:
                   number: 8081
-    # Хост для команд docker push/pull
     - host: registry-nexus.ccsfarm.local
       http:
         paths:
