@@ -62,6 +62,11 @@ spec:
               name: ui
             - containerPort: 8082
               name: docker-hosted
+          env:
+            - name: NEXUS_CONTEXT
+              value: "/"
+            - name: INSTALL4J_ADD_VM_PARAMS
+              value: "-Xms2703m -Xmx2703m -XX:+UseG1GC -Djava.util.prefs.userRoot=/nexus-data/javaprefs -Djava.net.preferIPv4Stack=true -Dnexus.s3.access.check.disable=true"              
           # Ресурсы: Nexus требует много Java Heap
           resources:
             requests:

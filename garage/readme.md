@@ -519,3 +519,49 @@ spec:
 *   **Access/Secret:** (те, что получили в пункте 5)
 *   **Signature:** `AWSS3V4SignerType`
 *   **Path-style access:** ✅ (Обязательно)
+
+
+Вот **исправленный и полный блок команд** для инициализации. Выполните его целиком.
+
+```bash
+# 1. Получаем ID ноды (ИСПРАВЛЕННАЯ КОМАНДА)
+# Мы берем ПОСЛЕДНЮЮ строку вывода, а не первую, и из нее берем первое слово.
+NODE_ID=$(kubectl exec -n garage garage-0 -- /garage status | tail -n 1 | awk '{print $1}' | tr -d '\r')
+
+echo "✅ ID ноды успешно получен: $NODE_ID"
+
+# 2. Назначаем роль (Zone: dc1, Capacity: 300GB)
+echo "Назначаем роль..."
+kubectl exec -n garage garage-0 -- /garage layout assign -z dc1 -c 300G $NODE_ID
+
+# 3. Применяем изменения (это исправит ошибку "replication factor")
+echo "Применяем layout..."
+kubectl exec -n garage garage-0 -- /garage layout apply --version 1
+
+# 4. Проверяем, что все применилось
+echo "Проверяем статус..."
+kubectl exec -n garage garage-0 -- /garage status```
+
+**После выполнения этого блока вы должны увидеть, что у ноды в `garage status` появилась роль, зона и емкость.**
+
+---
+
+### Следующий шаг (Создание ключей и бакета)
+
+Как только `garage status` покажет, что нода сконфигурирована, выполните эти команды для создания доступа для Nexus:
+
+```bash
+# 1. Создаем ключ (СКОПИРУЙТЕ ВЫВОД!)
+echo "Создаем ключ доступа (сохраните его!):"
+kubectl exec -n garage garage-0 -- /garage key create nexus-key
+
+# 2. Создаем бакет
+echo "Создаем бакет..."
+kubectl exec -n garage garage-0 -- /garage bucket create nexus-docker-blob
+
+# 3. Даем права
+echo "Выдаем права на бакет..."
+kubectl exec -n garage garage-0 -- /garage bucket allow nexus-docker-blob --read --write --owner --key nexus-key
+```
+
+Теперь ваш Garage готов принимать данные от Nexus.
