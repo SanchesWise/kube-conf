@@ -52,7 +52,7 @@ spec:
       
       containers:
         - name: nexus
-          image: sonatype/nexus3:3.70.1
+          image: sonatype/nexus3:3.87.1
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsUser: 200
