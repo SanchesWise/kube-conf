@@ -1,0 +1,159 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: garage
+
+---
+# 1. Конфигурация Garage
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: garage-config
+  namespace: garage
+data:
+  garage.toml: |
+    # Пути к данным (должны совпадать с mountPath в StatefulSet)
+    metadata_dir = "/var/lib/garage/meta"
+    data_dir = "/var/lib/garage/data"
+
+    # Режим репликации. Для одной ноды "none".
+    # Если добавите ноды в будущем, смените на "2-copy" или "3-copy".
+    replication_mode = "none"
+
+    [db]
+    engine = "lmdb"
+
+    [rpc]
+    bind_addr = "[::]:3901"
+    # Сгенерируйте случайную строку: openssl rand -hex 32
+    # Это секрет для общения между нодами garage
+    secret = "5f6e8d9c0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d"
+
+    [s3_api]
+    s3_region = "us-east-1"
+    api_bind_addr = "[::]:3900"
+    root_domain = ".s3.garage.svc.cluster.local"
+
+    [s3_web]
+    bind_addr = "[::]:3902"
+    root_domain = ".web.garage.svc.cluster.local"
+
+---
+# 2. Сервис для доступа (Headless для кластеризации + ClusterIP для клиентов)
+apiVersion: v1
+kind: Service
+metadata:
+  name: garage
+  namespace: garage
+  labels:
+    app: garage
+spec:
+  ports:
+    - name: s3-api
+      port: 3900
+      targetPort: 3900
+    - name: rpc
+      port: 3901
+      targetPort: 3901
+    - name: web
+      port: 3902
+      targetPort: 3902
+  selector:
+    app: garage
+  clusterIP: None # Headless service важен для обнаружения пиров
+
+---
+# 3. StatefulSet с двумя типами дисков
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: garage
+  namespace: garage
+spec:
+  serviceName: "garage"
+  replicas: 1 # Начнем с одной ноды
+  selector:
+    matchLabels:
+      app: garage
+  template:
+    metadata:
+      labels:
+        app: garage
+    spec:
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsGroup: 1000
+
+      # Init-контейнер для прав доступа (особенно для NFS)
+      initContainers:
+        - name: fix-permissions
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - >
+              mkdir -p /var/lib/garage/meta &&
+              mkdir -p /var/lib/garage/data &&
+              chown -R 1000:1000 /var/lib/garage &&
+              chmod 700 /var/lib/garage/meta &&
+              chmod 700 /var/lib/garage/data
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: meta-vol
+              mountPath: /var/lib/garage/meta
+            - name: data-vol
+              mountPath: /var/lib/garage/data
+
+      containers:
+        - name: garage
+          image: dxflrs/garage:v1.0.0
+          args: ["server"]
+          ports:
+            - containerPort: 3900
+              name: s3-api
+            - containerPort: 3901
+              name: rpc
+          volumeMounts:
+            - name: config
+              mountPath: /etc/garage.toml
+              subPath: garage.toml
+            - name: meta-vol
+              mountPath: /var/lib/garage/meta
+            - name: data-vol
+              mountPath: /var/lib/garage/data
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi" # Garage очень экономен к памяти
+
+      volumes:
+        - name: config
+          configMap:
+            name: garage-config
+
+  # Запрос дисков (два разных класса хранения)
+  volumeClaimTemplates:
+    # 1. Быстрый диск для БД (Metadata)
+    - metadata:
+        name: meta-vol
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: longhorn  # SSD
+        resources:
+          requests:
+            storage: 10Gi
+
+    # 2. Медленный/Большой диск для Данных (Blobs)
+    - metadata:
+        name: data-vol
+      spec:
+        accessModes: [ "ReadWriteOnce" ] # Garage сам менеджит доступ, RWO достаточно
+        storageClassName: managed-nfs-storage # NFS
+        resources:
+          requests:
+            storage: 300Gi
