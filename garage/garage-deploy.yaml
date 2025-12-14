@@ -109,7 +109,7 @@ spec:
       containers:
         - name: garage
           image: dxflrs/garage:v1.0.0
-          args: ["server"]
+          command: ["/garage", "server"]
           ports:
             - containerPort: 3900
               name: s3-api
