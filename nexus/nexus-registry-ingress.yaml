@@ -1,0 +1,37 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nexus-ingress-registry
+  namespace: nexus
+  annotations:
+    cert-manager.io/cluster-issuer: ccsfarm-ca-issuer
+    
+    # === ВАЖНЫЕ НАСТРОЙКИ ДЛЯ DOCKER PUSH ===
+    # Отключаем ограничение на размер файла (иначе большие слои не зальются)
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    # Увеличиваем таймауты (иначе пуш большого слоя оборвется)
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "900"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "900"
+    # Отключаем буферизацию (критично для Docker push)
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    
+    # Явно указываем протокол бэкенда (на всякий случай)
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - registry-nexus.ccsfarm.local
+      secretName: nexus-tls-secret
+  rules:
+    - host: registry-nexus.ccsfarm.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nexus-service
+                port:
+                  number: 8082  # <--- ЦЕЛЬ: ПОРТ 8082

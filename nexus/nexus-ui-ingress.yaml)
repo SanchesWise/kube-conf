@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nexus-ingress-ui
+  namespace: nexus
+  annotations:
+    cert-manager.io/cluster-issuer: ccsfarm-ca-issuer
+    # Для UI настройки стандартные
+    nginx.ingress.kubernetes.io/proxy-body-size: "1G"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - nexus.ccsfarm.local
+      secretName: nexus-tls-secret
+  rules:
+    - host: nexus.ccsfarm.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nexus-service
+                port:
+                  number: 8081

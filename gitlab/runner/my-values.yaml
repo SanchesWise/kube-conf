@@ -40,7 +40,7 @@ service:
     - name: metrics
       port: 9252
       targetPort: metrics
-      protocol: TCP  
+      protocol: TCP  nslookup kubernetes.default
 runners:
   config: |
     # log_level = "debug"
