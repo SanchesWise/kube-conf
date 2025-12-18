@@ -14,8 +14,8 @@ metadata:
 type: Opaque
 stringData:
   # --- НАСТРОЙКИ MINIO (Заполни своими данными!) ---
-  s3-access-key: "docker"      # Твой Access Key
-  s3-secret-key: "FeerDe3o"   # Твой Secret Key
+  s3-access-key: docker      # Твой Access Key
+  s3-secret-key: FeerDe3o   # Твой Secret Key
   
   # --- ПАРОЛЬ ОТ РЕЕСТРА (htpasswd) ---
   # По умолчанию: admin / password
