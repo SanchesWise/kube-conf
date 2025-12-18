@@ -14,8 +14,15 @@ metadata:
 type: Opaque
 stringData:
   # --- НАСТРОЙКИ MINIO (Заполни своими данными!) ---
-  s3-access-key: docker      # Твой Access Key
-  s3-secret-key: FeerDe3o   # Твой Secret Key
+  s3-access-key: "docker"      # Твой Access Key
+  s3-secret-key: "FeerDe3o"   # Твой Secret Key
+  
+  # --- ПАРОЛЬ ОТ РЕЕСТРА (htpasswd) ---
+  # По умолчанию: admin / password
+  # Сгенерировать новый: docker run --rm -it xmartlabs/htpasswd admin НОВЫЙ_ПАРОЛЬ
+  htpasswd: |
+    admin:$2a$10$Iaq6DBPzG.jkJ7fQweuU9I4k0gDAnQaiHoeHvwgtZK48EiuO.bgbh
+
 ---
 # ==========================================================
 # 2. DOCKER REGISTRY (Backend)
@@ -71,15 +78,35 @@ spec:
             secretKeyRef:
               name: registry-creds
               key: s3-secret-key
+        
+        # === НАСТРОЙКИ АВТОРИЗАЦИИ ===
+        - name: REGISTRY_AUTH
+          value: htpasswd
+        - name: REGISTRY_AUTH_HTPASSWD_REALM
+          value: "Registry Realm"
+        - name: REGISTRY_AUTH_HTPASSWD_PATH
+          value: /auth/htpasswd
+        
         # === НАСТРОЙКИ CORS (Нужны для UI) ===
         - name: REGISTRY_HTTP_HEADERS_Access-Control-Allow-Origin
-          value: "['*']"
+          value: "['https://registry-ui.ccsfarm.local']"
         - name: REGISTRY_HTTP_HEADERS_Access-Control-Allow-Methods
           value: "['HEAD', 'GET', 'OPTIONS', 'DELETE']"
         - name: REGISTRY_HTTP_HEADERS_Access-Control-Allow-Headers
           value: "['Authorization', 'Accept', 'Cache-Control']"
         - name: REGISTRY_HTTP_HEADERS_Access-Control-Expose-Headers
           value: "['Docker-Content-Digest']"
+
+        volumeMounts:
+        - name: auth-vol
+          mountPath: /auth
+      volumes:
+      - name: auth-vol
+        secret:
+          secretName: registry-creds
+          items:
+          - key: htpasswd
+            path: htpasswd
 ---
 apiVersion: v1
 kind: Service
