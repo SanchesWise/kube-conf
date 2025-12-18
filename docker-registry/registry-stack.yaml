@@ -1,0 +1,213 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nexus
+---
+# ==========================================================
+# 1. SECRETS (Пароли и ключи)
+# ==========================================================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: registry-creds
+  namespace: nexus
+type: Opaque
+stringData:
+  # --- НАСТРОЙКИ MINIO (Заполни своими данными!) ---
+  s3-access-key: "docker"      # Твой Access Key
+  s3-secret-key: "FeerDe3o"   # Твой Secret Key
+  
+  # --- ПАРОЛЬ ОТ РЕЕСТРА (htpasswd) ---
+  # По умолчанию: admin / password
+  # Сгенерировать новый: docker run --rm -it xmartlabs/htpasswd admin НОВЫЙ_ПАРОЛЬ
+  htpasswd: |
+    admin:$2y$05$v.Imx/uJ6qCqjN3L40/rIO7/Wc95.Wc5W5.Wc5W5.Wc5W5.Wc5W5
+
+---
+# ==========================================================
+# 2. DOCKER REGISTRY (Backend)
+# ==========================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docker-registry
+  namespace: nexus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docker-registry
+  template:
+    metadata:
+      labels:
+        app: docker-registry
+    spec:
+      containers:
+      - name: registry
+        image: registry:2.8
+        ports:
+        - containerPort: 5000
+        env:
+        # === НАСТРОЙКИ ХРАНИЛИЩА (S3) ===
+        - name: REGISTRY_STORAGE
+          value: s3
+        - name: REGISTRY_STORAGE_S3_REGION
+          value: us-east-1
+        - name: REGISTRY_STORAGE_S3_BUCKET
+          value: docker-registry  # БАКЕТ ДОЛЖЕН СУЩЕСТВОВАТЬ!
+        - name: REGISTRY_STORAGE_S3_REGIONENDPOINT
+          value: http://minio.minio.svc.cluster.local:9000
+        - name: REGISTRY_STORAGE_S3_SECURE
+          value: "false"
+        - name: REGISTRY_STORAGE_S3_V4AUTH
+          value: "true"
+        - name: REGISTRY_STORAGE_S3_CHUNKSIZE
+          value: "5242880"
+        - name: REGISTRY_STORAGE_DELETE_ENABLED
+          value: "true"
+        # Брем ключи из секрета выше
+        - name: REGISTRY_STORAGE_S3_ACCESSKEY
+          valueFrom:
+            secretKeyRef:
+              name: registry-creds
+              key: s3-access-key
+        - name: REGISTRY_STORAGE_S3_SECRETKEY
+          valueFrom:
+            secretKeyRef:
+              name: registry-creds
+              key: s3-secret-key
+        
+        # === НАСТРОЙКИ АВТОРИЗАЦИИ ===
+        - name: REGISTRY_AUTH
+          value: htpasswd
+        - name: REGISTRY_AUTH_HTPASSWD_REALM
+          value: "Registry Realm"
+        - name: REGISTRY_AUTH_HTPASSWD_PATH
+          value: /auth/htpasswd
+        
+        # === НАСТРОЙКИ CORS (Нужны для UI) ===
+        - name: REGISTRY_HTTP_HEADERS_Access-Control-Allow-Origin
+          value: "['https://registry-ui.ccsfarm.local']"
+        - name: REGISTRY_HTTP_HEADERS_Access-Control-Allow-Methods
+          value: "['HEAD', 'GET', 'OPTIONS', 'DELETE']"
+        - name: REGISTRY_HTTP_HEADERS_Access-Control-Allow-Headers
+          value: "['Authorization', 'Accept', 'Cache-Control']"
+        - name: REGISTRY_HTTP_HEADERS_Access-Control-Expose-Headers
+          value: "['Docker-Content-Digest']"
+
+        volumeMounts:
+        - name: auth-vol
+          mountPath: /auth
+      volumes:
+      - name: auth-vol
+        secret:
+          secretName: registry-creds
+          items:
+          - key: htpasswd
+            path: htpasswd
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: docker-registry-svc
+  namespace: nexus
+spec:
+  selector:
+    app: docker-registry
+  ports:
+    - name: registry
+      port: 5000
+      targetPort: 5000
+---
+# ==========================================================
+# 3. REGISTRY UI (Frontend)
+# ==========================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: registry-ui
+  namespace: nexus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: registry-ui
+  template:
+    metadata:
+      labels:
+        app: registry-ui
+    spec:
+      containers:
+      - name: ui
+        image: joxit/docker-registry-ui:2.5
+        ports:
+        - containerPort: 80
+        env:
+        # UI работает в браузере и стучится в Registry по публичному URL
+        - name: REGISTRY_URL
+          value: https://registry.ccsfarm.local
+        - name: REGISTRY_TITLE
+          value: "CCSFarm Registry"
+        - name: SINGLE_REGISTRY
+          value: "true"
+        - name: DELETE_IMAGES
+          value: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: registry-ui-svc
+  namespace: nexus
+spec:
+  selector:
+    app: registry-ui
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+---
+# ==========================================================
+# 4. INGRESS (Маршрутизация)
+# ==========================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: registry-ingress
+  namespace: nexus
+  annotations:
+    cert-manager.io/cluster-issuer: ccsfarm-ca-issuer
+    # Важно для загрузки больших Docker образов
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "900"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "900"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - registry.ccsfarm.local
+        - registry-ui.ccsfarm.local
+      secretName: registry-tls-secret
+  rules:
+    # --- DOCKER PUSH/PULL ---
+    - host: registry.ccsfarm.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: docker-registry-svc
+                port:
+                  number: 5000
+    # --- WEB UI ---
+    - host: registry-ui.ccsfarm.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: registry-ui-svc
+                port:
+                  number: 80
