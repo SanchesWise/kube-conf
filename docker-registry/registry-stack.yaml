@@ -21,7 +21,7 @@ stringData:
   # По умолчанию: admin / password
   # Сгенерировать новый: docker run --rm -it xmartlabs/htpasswd admin НОВЫЙ_ПАРОЛЬ
   htpasswd: |
-    admin:$2y$05$05.5qTH7gYR3VIvQ9oWKfOTMMUCzvnpk9coeNK/Guo99jU3FFQxY2
+    admin:$2y$05$ncdNAqY15kNLfOanZiMrausiz42PszOJTfZyT.1hflOfWnYnSlcxO
 
 ---
 # ==========================================================
@@ -89,7 +89,7 @@ spec:
         
         # === НАСТРОЙКИ CORS (Нужны для UI) ===
         - name: REGISTRY_HTTP_HEADERS_Access-Control-Allow-Origin
-          value: "['https://registry-ui.ccsfarm.local']"
+          value: "['*']"
         - name: REGISTRY_HTTP_HEADERS_Access-Control-Allow-Methods
           value: "['HEAD', 'GET', 'OPTIONS', 'DELETE']"
         - name: REGISTRY_HTTP_HEADERS_Access-Control-Allow-Headers
