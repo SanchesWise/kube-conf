@@ -145,7 +145,7 @@ spec:
         env:
         # UI работает в браузере и стучится в Registry по публичному URL
         - name: REGISTRY_URL
-          value: https://registry.ccsfarm.local
+          value: https://registry-docker.ccsfarm.local
         - name: REGISTRY_TITLE
           value: "CCSFarm Registry"
         - name: SINGLE_REGISTRY
@@ -185,12 +185,12 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - registry.ccsfarm.local
+        - registry-docker.ccsfarm.local
         - registry-ui.ccsfarm.local
       secretName: registry-tls-secret
   rules:
     # --- DOCKER PUSH/PULL ---
-    - host: registry.ccsfarm.local
+    - host: registry-docker.ccsfarm.local
       http:
         paths:
           - path: /
