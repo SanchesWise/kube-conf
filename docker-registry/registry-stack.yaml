@@ -73,7 +73,7 @@ spec:
               key: s3-secret-key
         # === НАСТРОЙКИ CORS (Нужны для UI) ===
         - name: REGISTRY_HTTP_HEADERS_Access-Control-Allow-Origin
-          value: "['https://registry-ui.ccsfarm.local']"
+          value: "['*']"
         - name: REGISTRY_HTTP_HEADERS_Access-Control-Allow-Methods
           value: "['HEAD', 'GET', 'OPTIONS', 'DELETE']"
         - name: REGISTRY_HTTP_HEADERS_Access-Control-Allow-Headers
