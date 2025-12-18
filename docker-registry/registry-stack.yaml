@@ -53,6 +53,8 @@ spec:
           value: s3
         - name: REGISTRY_STORAGE_S3_REGION
           value: us-east-1
+        - name: REGISTRY_STORAGE_S3_FORCEPATHSTYLE
+          value: "true"          
         - name: REGISTRY_STORAGE_S3_BUCKET
           value: docker-registry  # БАКЕТ ДОЛЖЕН СУЩЕСТВОВАТЬ!
         - name: REGISTRY_STORAGE_S3_REGIONENDPOINT
