@@ -21,7 +21,7 @@ stringData:
   # По умолчанию: admin / password
   # Сгенерировать новый: docker run --rm -it xmartlabs/htpasswd admin НОВЫЙ_ПАРОЛЬ
   htpasswd: |
-    admin:$2y$05$v.Imx/uJ6qCqjN3L40/rIO7/Wc95.Wc5W5.Wc5W5.Wc5W5.Wc5W5
+    admin:password
 
 ---
 # ==========================================================
