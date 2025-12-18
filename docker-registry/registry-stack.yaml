@@ -89,7 +89,9 @@ spec:
         
         # === НАСТРОЙКИ CORS (Нужны для UI) ===
         - name: REGISTRY_HTTP_HEADERS_Access-Control-Allow-Origin
-          value: "['*']"
+          value: "['https://registry-ui.ccsfarm.local']"
+        - name: REGISTRY_HTTP_HEADERS_Access-Control-Allow-Credentials
+          value: "['true']"
         - name: REGISTRY_HTTP_HEADERS_Access-Control-Allow-Methods
           value: "['HEAD', 'GET', 'OPTIONS', 'DELETE']"
         - name: REGISTRY_HTTP_HEADERS_Access-Control-Allow-Headers
@@ -149,7 +151,7 @@ spec:
         - name: REGISTRY_URL
           value: https://registry-docker.ccsfarm.local
         - name: REGISTRY_TITLE
-          value: "CCSFarm Registry"
+          value: "Registry"
         - name: SINGLE_REGISTRY
           value: "true"
         - name: DELETE_IMAGES
