@@ -73,7 +73,8 @@ spec:
           value: "5242880"
         - name: REGISTRY_STORAGE_DELETE_ENABLED
           value: "true"
-        
+        - name: REGISTRY_STORAGE_REDIRECT_DISABLE
+          value: "true"        
         # Ключи
         - name: REGISTRY_STORAGE_S3_ACCESSKEY
           valueFrom:
