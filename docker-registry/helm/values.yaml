@@ -107,7 +107,7 @@ s3:
   bucket: docker-registry
   rootdirectory: /
   encrypt: false
-  secure: true
+  secure: false
   forcepathstyle: true
   skipverify: true
 
