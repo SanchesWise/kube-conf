@@ -99,6 +99,8 @@ spec:
         - name: REGISTRY_HTTP_HEADERS_Access-Control-Expose-Headers
           value: "['Docker-Content-Digest']"
 
+        - name: REGISTRY_LOG_LEVEL
+          value: "debug"
         volumeMounts:
         - name: auth-vol
           mountPath: /auth
