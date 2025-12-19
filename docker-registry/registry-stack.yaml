@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: nexus
+  name: Docker-registry
 ---
 # ==========================================================
 # 1. SECRETS (Пароли и ключи)
@@ -10,12 +10,12 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: registry-creds
-  namespace: nexus
+  namespace: Docker-registry
 type: Opaque
 stringData:
   # --- НАСТРОЙКИ MINIO (Заполни своими данными!) ---
-  s3-access-key: "docker"      # Твой Access Key
-  s3-secret-key: "FeerDe3o"   # Твой Secret Key
+  s3-access-key: "admin"      # Твой Access Key
+  s3-secret-key: "password"   # Твой Secret Key
   
   # --- ПАРОЛЬ ОТ РЕЕСТРА (htpasswd) ---
   # По умолчанию: admin / password
@@ -31,7 +31,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: docker-registry
-  namespace: nexus
+  namespace: Docker-registry
 spec:
   replicas: 1
   selector:
@@ -67,6 +67,8 @@ spec:
           value: "5242880"
         - name: REGISTRY_STORAGE_DELETE_ENABLED
           value: "true"
+        - name: REGISTRY_STORAGE_REDIRECT_DISABLE
+          value: "true"          
         # Брем ключи из секрета выше
         - name: REGISTRY_STORAGE_S3_ACCESSKEY
           valueFrom:
@@ -116,7 +118,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: docker-registry-svc
-  namespace: nexus
+  namespace: Docker-registry
 spec:
   selector:
     app: docker-registry
@@ -132,7 +134,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: registry-ui
-  namespace: nexus
+  namespace: Docker-registry
 spec:
   replicas: 1
   selector:
@@ -163,7 +165,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: registry-ui-svc
-  namespace: nexus
+  namespace: Docker-registry
 spec:
   selector:
     app: registry-ui
@@ -179,7 +181,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: registry-ingress
-  namespace: nexus
+  namespace: Docker-registry
   annotations:
     cert-manager.io/cluster-issuer: ccsfarm-ca-issuer
     # Важно для загрузки больших Docker образов
