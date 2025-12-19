@@ -13,19 +13,16 @@ metadata:
   namespace: docker-registry
 type: Opaque
 stringData:
-  # --- НАСТРОЙКИ MINIO (Заполни своими данными!) ---
-  s3-access-key: "admin"      # Твой Access Key
-  s3-secret-key: "password"   # Твой Secret Key
+  s3-access-key: "admin"      
+  s3-secret-key: "password"   
   
-  # --- ПАРОЛЬ ОТ РЕЕСТРА (htpasswd) ---
-  # По умолчанию: admin / password
-  # Сгенерировать новый: docker run --rm -it xmartlabs/htpasswd admin НОВЫЙ_ПАРОЛЬ
+  # htpasswd: admin / password
   htpasswd: |
     admin:$2y$05$ncdNAqY15kNLfOanZiMrausiz42PszOJTfZyT.1hflOfWnYnSlcxO
 
 ---
 # ==========================================================
-# 2. DOCKER REGISTRY (Backend)
+# 2. DOCKER REGISTRY (Backend + Metrics)
 # ==========================================================
 apiVersion: apps/v1
 kind: Deployment
@@ -47,7 +44,16 @@ spec:
         image: registry:2.8
         ports:
         - containerPort: 5000
+          name: registry
+        - containerPort: 5001   # <--- НОВОЕ: Порт для метрик
+          name: debug
         env:
+        # === ВКЛЮЧЕНИЕ МЕТРИК PROMETHEUS ===
+        - name: REGISTRY_HTTP_DEBUG_ADDR
+          value: ":5001"
+        - name: REGISTRY_HTTP_DEBUG_PROMETHEUS_ENABLED
+          value: "true"
+
         # === НАСТРОЙКИ ХРАНИЛИЩА (S3) ===
         - name: REGISTRY_STORAGE
           value: "s3"
@@ -56,7 +62,7 @@ spec:
         - name: REGISTRY_STORAGE_S3_FORCEPATHSTYLE
           value: "true"          
         - name: REGISTRY_STORAGE_S3_BUCKET
-          value: "docker-registry"  # БАКЕТ ДОЛЖЕН СУЩЕСТВОВАТЬ!
+          value: "docker-registry"
         - name: REGISTRY_STORAGE_S3_REGIONENDPOINT
           value: "http://minio.minio.svc.cluster.local:9000"
         - name: REGISTRY_STORAGE_S3_SECURE
@@ -67,9 +73,8 @@ spec:
           value: "5242880"
         - name: REGISTRY_STORAGE_DELETE_ENABLED
           value: "true"
-        - name: REGISTRY_STORAGE_REDIRECT_DISABLE
-          value: "true"          
-        # Брем ключи из секрета выше
+        
+        # Ключи
         - name: REGISTRY_STORAGE_S3_ACCESSKEY
           valueFrom:
             secretKeyRef:
@@ -89,7 +94,7 @@ spec:
         - name: REGISTRY_AUTH_HTPASSWD_PATH
           value: "/auth/htpasswd"
         
-        # === НАСТРОЙКИ CORS (Нужны для UI) ===
+        # === НАСТРОЙКИ CORS ===
         - name: REGISTRY_HTTP_HEADERS_Access-Control-Allow-Origin
           value: "['https://registry-ui.ccsfarm.local']"
         - name: REGISTRY_HTTP_HEADERS_Access-Control-Allow-Credentials
@@ -101,8 +106,6 @@ spec:
         - name: REGISTRY_HTTP_HEADERS_Access-Control-Expose-Headers
           value: "['Docker-Content-Digest']"
 
-        # - name: REGISTRY_LOG_LEVEL
-        #   value: "debug"
         volumeMounts:
         - name: auth-vol
           mountPath: /auth
@@ -119,6 +122,8 @@ kind: Service
 metadata:
   name: docker-registry-svc
   namespace: docker-registry
+  labels:
+    app: docker-registry  # Важно для ServiceMonitor
 spec:
   selector:
     app: docker-registry
@@ -126,9 +131,36 @@ spec:
     - name: registry
       port: 5000
       targetPort: 5000
+    - name: debug       # <--- НОВОЕ: Открываем порт метрик в сервисе
+      port: 5001
+      targetPort: 5001
 ---
 # ==========================================================
-# 3. REGISTRY UI (Frontend)
+# 3. SERVICE MONITOR (Для Prometheus Stack)
+# ==========================================================
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: docker-registry-monitor
+  namespace: docker-registry
+  labels:
+    # Этот лейбл критичен, чтобы Prometheus Operator нашел этот монитор
+    # Если у вас release называется по-другому, поменяйте значение
+    release: kube-prometheus-stack 
+spec:
+  selector:
+    matchLabels:
+      app: docker-registry
+  namespaceSelector:
+    matchNames:
+      - docker-registry
+  endpoints:
+  - port: debug
+    path: /metrics
+    interval: 30s
+---
+# ==========================================================
+# 4. REGISTRY UI (Frontend)
 # ==========================================================
 apiVersion: apps/v1
 kind: Deployment
@@ -151,7 +183,6 @@ spec:
         ports:
         - containerPort: 80
         env:
-        # UI работает в браузере и стучится в Registry по публичному URL
         - name: REGISTRY_URL
           value: https://registry-docker.ccsfarm.local
         - name: REGISTRY_TITLE
@@ -175,7 +206,7 @@ spec:
       targetPort: 80
 ---
 # ==========================================================
-# 4. INGRESS (Маршрутизация)
+# 5. INGRESS (Маршрутизация)
 # ==========================================================
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -184,7 +215,6 @@ metadata:
   namespace: docker-registry
   annotations:
     cert-manager.io/cluster-issuer: ccsfarm-ca-issuer
-    # Важно для загрузки больших Docker образов
     nginx.ingress.kubernetes.io/proxy-body-size: "0"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "900"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "900"
@@ -197,7 +227,6 @@ spec:
         - registry-ui.ccsfarm.local
       secretName: registry-tls-secret
   rules:
-    # --- DOCKER PUSH/PULL ---
     - host: registry-docker.ccsfarm.local
       http:
         paths:
@@ -208,7 +237,6 @@ spec:
                 name: docker-registry-svc
                 port:
                   number: 5000
-    # --- WEB UI ---
     - host: registry-ui.ccsfarm.local
       http:
         paths:
