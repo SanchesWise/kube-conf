@@ -67,7 +67,7 @@ spec:
       initContainers:
       - name: init-permissions
         # Используем Т ТОТ ЖЕ образ, что и база. В нем точно есть юзер postgres.
-        image: registry-nexus.ccsfarm.local/pg-ts-vector:latest
+        image: registry-docker.ccsfarm.local/pg-ts-vector:latest
         command: ["/bin/sh", "-c"]
         args:
           - |
