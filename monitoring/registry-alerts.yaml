@@ -1,0 +1,51 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: docker-registry-alerts
+  namespace: docker-registry
+  labels:
+    # ВАЖНО: Должно совпадать с именем релиза вашего прометея
+    # Если ставили через helm install prometheus ..., то скорее всего лейбл 'prometheus'
+    # Но в 90% случаев в стеке используется этот лейбл:
+    release: kube-prometheus-stack
+spec:
+  groups:
+  - name: docker-registry.rules
+    rules:
+    
+    # 1. Реестр недоступен (не отдает метрики)
+    - alert: RegistryDown
+      expr: up{app="docker-registry"} == 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Docker Registry is down"
+        description: "Pod has disappeared or is not scraping metrics."
+
+    # 2. Высокий процент ошибок 5xx (> 1%)
+    - alert: RegistryHighErrorRate
+      expr: |
+        100 * (
+          sum(rate(registry_http_request_duration_seconds_count{code=~"5.."}[5m]))
+          /
+          sum(rate(registry_http_request_duration_seconds_count[5m]))
+        ) > 1
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Registry High Error Rate"
+        description: "More than 1% of requests are failing with 5xx errors."
+
+    # 3. Долгая загрузка (Latency P99 > 2 секунды)
+    # Исключаем /v2/ (health check) и /metrics
+    - alert: RegistryHighLatency
+      expr: |
+        histogram_quantile(0.99, sum(rate(registry_http_request_duration_seconds_bucket{route!="/", route!="/metrics"}[5m])) by (le)) > 2
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Registry Slow Responses"
+        description: "P99 Latency is over 2 seconds."
