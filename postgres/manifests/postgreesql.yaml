@@ -62,7 +62,8 @@ spec:
         version: "16.0"
     spec:
       terminationGracePeriodSeconds: 30
-      
+      imagePullSecrets:
+      - name: regcred
       # --- ИСПРАВЛЕННЫЙ INIT CONTAINER ---
       initContainers:
       - name: init-permissions

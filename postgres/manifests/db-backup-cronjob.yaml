@@ -23,6 +23,8 @@ spec:
     spec:
       template:
         spec:
+          imagePullSecrets:
+          - name: regcred        
           # Если образ лежит в приватном Nexus, нужен imagePullSecrets
           # imagePullSecrets:
           #   - name: nexus-docker-secret 
