@@ -58,7 +58,6 @@ ingress:
   tls:
     - hosts:
       - registry-docker.ccsfarm.local
-      - registry-ui.ccsfarm.local
       secretName: registry-tls-secret
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
@@ -93,8 +92,8 @@ secrets:
 # Use a secretRef with keys (accessKey, secretKey) for secrets stored outside the chart
   s3:
     secretRef: ""
-    accessKey: "docker"
-    secretKey: "FeerDe3o"
+    accessKey: "admin"
+    secretKey: "password"
 # Secrets for Swift username and password
 #   swift:
 #     username: ""
@@ -109,7 +108,8 @@ s3:
   encrypt: false
   secure: false
   forcepathstyle: true
-  skipverify: true
+  skipverify: false
+  chunksize: 5242880
 
 # Options for swift storage type:
 # swift:
