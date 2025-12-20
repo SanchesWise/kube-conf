@@ -48,6 +48,7 @@ runners:
       output_limit = 10000
       [runners.kubernetes]
         image = "registry.red-soft.ru/ubi8/ubi-micro"
+        dns_config_options = ["ndots:2"]
         # helper_image = "if use custom helper"
         [[runners.kubernetes.volumes.secret]]
           name = "custom-ca-certs"
