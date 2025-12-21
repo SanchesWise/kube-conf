@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: external-nodes-monitor
+  namespace: monitoring  # Проверьте, что ваш Prometheus живет здесь
+  labels:
+    release: kube-prometheus-stack # Ключевой лейбл для обнаружения оператором
+spec:
+  selector:
+    matchLabels:
+      type: external-node # Мы будем вешать этот лейбл на новые ноды
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    # Увеличим таймаут, так как внешняя сеть может быть медленнее
+    scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+    - monitoring

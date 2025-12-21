@@ -1,0 +1,23 @@
+--- IP LINK (MTU) ---
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: ens18: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP mode DEFAULT group default qlen 1000
+    link/ether a2:b5:18:cf:f5:3a brd ff:ff:ff:ff:ff:ff
+    altname enp0s18
+3: nodelocaldns: <BROADCAST,NOARP> mtu 1500 qdisc noop state DOWN mode DEFAULT group default 
+    link/ether d6:ac:c6:55:a4:48 brd ff:ff:ff:ff:ff:ff
+4: kube-ipvs0: <BROADCAST,NOARP> mtu 1500 qdisc noop state DOWN mode DEFAULT group default 
+    link/ether 42:61:ab:39:b7:92 brd ff:ff:ff:ff:ff:ff
+5: cali700f89e91f4@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1480 qdisc noqueue state UP mode DEFAULT group default qlen 1000
+    link/ether ee:ee:ee:ee:ee:ee brd ff:ff:ff:ff:ff:ff link-netns 3c1b823e-5045-4dea-8449-0a4c9b0c0a4b
+6: calie98cda84b6f@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1480 qdisc noqueue state UP mode DEFAULT group default qlen 1000
+    link/ether ee:ee:ee:ee:ee:ee brd ff:ff:ff:ff:ff:ff link-netns fed3e00a-bae1-40fb-b6ed-559efda8b319
+7: calid3c1209876a@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1480 qdisc noqueue state UP mode DEFAULT group default qlen 1000
+    link/ether ee:ee:ee:ee:ee:ee brd ff:ff:ff:ff:ff:ff link-netns 23c51116-6dff-4f60-a852-625016cd6615
+8: calia12205ee9cd@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1480 qdisc noqueue state UP mode DEFAULT group default qlen 1000
+    link/ether ee:ee:ee:ee:ee:ee brd ff:ff:ff:ff:ff:ff link-netns c9ed0fb5-7bb9-4b57-8207-95fa753597fe
+9: tunl0@NONE: <NOARP,UP,LOWER_UP> mtu 1480 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/ipip 0.0.0.0 brd 0.0.0.0
+
+--- ETHTOOL (TX OFFLOAD) ---
+tx-checksumming: on

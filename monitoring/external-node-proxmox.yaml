@@ -1,0 +1,32 @@
+# 1. Объявляем сервис (Интерфейс)
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-proxmox-chia04  # Имя хоста (для удобства)
+  namespace: monitoring
+  labels:
+    type: external-node      # <-- Этот лейбл зацепит ServiceMonitor
+    app: node-exporter
+spec:
+  ports:
+  - name: metrics
+    port: 9100
+    protocol: TCP
+    targetPort: 9100
+  type: ClusterIP
+---
+# 2. Указываем куда стучаться (Реализация)
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: node-proxmox-chia04  # Должно СТРОГО совпадать с именем Service
+  namespace: monitoring
+  labels:
+    type: external-node
+subsets:
+- addresses:
+  - ip: 10.10.1.54           # <-- Ваш реальный IP Proxmox
+  ports:
+  - name: metrics
+    port: 9100
+    protocol: TCP

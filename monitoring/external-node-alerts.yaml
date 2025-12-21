@@ -1,0 +1,38 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: external-nodes-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+  - name: external-nodes.rules
+    rules:
+    # 1. Хост лежит
+    - alert: ExternalHostDown
+      expr: up{job="node-proxmox-chia04"} == 0
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Proxmox Host {{ $labels.instance }} is DOWN"
+        description: "Node Exporter недоступен более 2 минут."
+
+    # 2. Высокая нагрузка CPU (> 90%)
+    - alert: ExternalHostHighCpu
+      expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High CPU load on {{ $labels.instance }}"
+
+    # 3. Заканчивается место на диске (< 10%)
+    - alert: ExternalHostLowDisk
+      expr: (node_filesystem_avail_bytes{fstype!=""} / node_filesystem_size_bytes{fstype!=""}) * 100 < 10
+      for: 15m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Low Disk Space on {{ $labels.instance }}"

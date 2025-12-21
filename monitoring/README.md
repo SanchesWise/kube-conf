@@ -587,3 +587,140 @@ kubectl port-forward svc/prometheus-kube-prometheus-prometheus -n monitoring 909
 Откройте http://localhost:9090 -> Status -> Targets.
 Вы должны увидеть разделы minio-monitor, gitlab-monitor и gitlab-runner.
 Все они должны быть UP (зеленые). Если они DOWN, смотрите ошибку (обычно это либо "connection refused" — не тот порт, либо "403" — нет прав/вайтлиста).
+
+Отлично, `curl` подтвердил доступность метрик (ошибка `Failure writing output` ожидаема, так как `head` закрыл поток раньше, чем `curl` закончил передачу).
+
+Связь есть. Теперь реализуем механизм подключения в кластере.
+
+Вот **готовые манифесты** для интеграции внешнего Proxmox хоста в ваш Prometheus Stack.
+
+### 1. Механизм авто-сбора (ServiceMonitor)
+Этот манифест нужно применить **один раз**. Он скажет Прометею: *"Следи за любыми сервисами, у которых есть лейбл `type: external-node`"*.
+
+Файл: `1-monitor-config.yaml`
+```yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: external-nodes-monitor
+  namespace: monitoring  # Проверьте, что ваш Prometheus живет здесь
+  labels:
+    release: kube-prometheus-stack # Ключевой лейбл для обнаружения оператором
+spec:
+  selector:
+    matchLabels:
+      type: external-node # Мы будем вешать этот лейбл на новые ноды
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    # Увеличим таймаут, так как внешняя сеть может быть медленнее
+    scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+    - monitoring
+```
+
+### 2. Подключение хоста Proxmox (Service + Endpoints)
+Этот манифест — и есть тот самый **"Механизм добавления новых нод"**.
+Чтобы добавить новую железку в будущем, вы просто копируете этот файл, меняете `name` и `ip`.
+
+Файл: `2-node-proxmox.yaml`
+```yaml
+# 1. Объявляем сервис (Интерфейс)
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-proxmox-chia04  # Имя хоста (для удобства)
+  namespace: monitoring
+  labels:
+    type: external-node      # <-- Этот лейбл зацепит ServiceMonitor
+    app: node-exporter
+spec:
+  ports:
+  - name: metrics
+    port: 9100
+    protocol: TCP
+    targetPort: 9100
+  type: ClusterIP
+---
+# 2. Указываем куда стучаться (Реализация)
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: node-proxmox-chia04  # Должно СТРОГО совпадать с именем Service
+  namespace: monitoring
+  labels:
+    type: external-node
+subsets:
+- addresses:
+  - ip: 10.10.1.54           # <-- Ваш реальный IP Proxmox
+  ports:
+  - name: metrics
+    port: 9100
+    protocol: TCP
+```
+
+### 3. Алерты (PrometheusRule)
+Базовый набор правил для внешних серверов.
+
+Файл: `3-node-alerts.yaml`
+```yaml
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: external-nodes-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+  - name: external-nodes.rules
+    rules:
+    # 1. Хост лежит
+    - alert: ExternalHostDown
+      expr: up{job="node-proxmox-chia04"} == 0
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Proxmox Host {{ $labels.instance }} is DOWN"
+        description: "Node Exporter недоступен более 2 минут."
+
+    # 2. Высокая нагрузка CPU (> 90%)
+    - alert: ExternalHostHighCpu
+      expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High CPU load on {{ $labels.instance }}"
+
+    # 3. Заканчивается место на диске (< 10%)
+    - alert: ExternalHostLowDisk
+      expr: (node_filesystem_avail_bytes{fstype!=""} / node_filesystem_size_bytes{fstype!=""}) * 100 < 10
+      for: 15m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Low Disk Space on {{ $labels.instance }}"
+```
+
+### Как применить:
+
+```bash
+kubectl apply -f 1-monitor-config.yaml
+kubectl apply -f 2-node-proxmox.yaml
+kubectl apply -f 3-node-alerts.yaml
+```
+
+### 4. Визуализация в Grafana
+
+1.  Откройте Grafana.
+2.  **Dashboards** -> **New** -> **Import**.
+3.  Введите ID: **1860** (Node Exporter Full). Это золотой стандарт.
+4.  Нажмите **Load**.
+5.  Выберите ваш Prometheus datasource.
+6.  После импорта, в фильтре "Job" или "Host" вы увидите IP вашего Proxmox (`10.10.1.54`).
+
+Теперь ваш гипервизор под полным контролем.

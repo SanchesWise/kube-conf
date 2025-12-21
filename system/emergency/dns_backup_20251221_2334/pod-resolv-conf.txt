@@ -1,0 +1,4 @@
+search default.svc.cluster.local svc.cluster.local cluster.local ccsfarm.local
+nameserver 169.254.25.10
+options ndots:5
+pod "snapshot-resolv" deleted

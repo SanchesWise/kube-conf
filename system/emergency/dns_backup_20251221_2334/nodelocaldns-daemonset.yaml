@@ -1,0 +1,125 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  annotations:
+    deprecated.daemonset.template.generation: "4"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apps/v1","kind":"DaemonSet","metadata":{"annotations":{},"labels":{"k8s-app":"kube-dns"},"name":"nodelocaldns","namespace":"kube-system"},"spec":{"selector":{"matchLabels":{"k8s-app":"nodelocaldns"}},"template":{"metadata":{"annotations":{"prometheus.io/port":"9253","prometheus.io/scrape":"true"},"labels":{"k8s-app":"nodelocaldns"}},"spec":{"containers":[{"args":["-localip","169.254.25.10","-conf","/etc/coredns/Corefile","-upstreamsvc","coredns"],"image":"registry.k8s.io/dns/k8s-dns-node-cache:1.23.1","livenessProbe":{"failureThreshold":10,"httpGet":{"host":"169.254.25.10","path":"/health","port":9254,"scheme":"HTTP"},"successThreshold":1,"timeoutSeconds":5},"name":"node-cache","ports":[{"containerPort":53,"name":"dns","protocol":"UDP"},{"containerPort":53,"name":"dns-tcp","protocol":"TCP"},{"containerPort":9253,"name":"metrics","protocol":"TCP"}],"readinessProbe":{"failureThreshold":10,"httpGet":{"host":"169.254.25.10","path":"/health","port":9254,"scheme":"HTTP"},"successThreshold":1,"timeoutSeconds":5},"resources":{"limits":{"memory":"170Mi"},"requests":{"cpu":"100m","memory":"70Mi"}},"securityContext":{"privileged":true},"volumeMounts":[{"mountPath":"/etc/coredns","name":"config-volume"},{"mountPath":"/run/xtables.lock","name":"xtables-lock"}]}],"dnsPolicy":"Default","hostNetwork":true,"priorityClassName":"system-cluster-critical","serviceAccountName":"nodelocaldns","terminationGracePeriodSeconds":0,"tolerations":[{"effect":"NoSchedule","operator":"Exists"},{"effect":"NoExecute","operator":"Exists"}],"volumes":[{"configMap":{"items":[{"key":"Corefile","path":"Corefile"}],"name":"nodelocaldns"},"name":"config-volume"},{"hostPath":{"path":"/run/xtables.lock","type":"FileOrCreate"},"name":"xtables-lock"}]}},"updateStrategy":{"rollingUpdate":{"maxUnavailable":"20%"},"type":"RollingUpdate"}}}
+  creationTimestamp: "2025-07-15T19:24:13Z"
+  generation: 4
+  labels:
+    k8s-app: kube-dns
+  name: nodelocaldns
+  namespace: kube-system
+  resourceVersion: "44860899"
+  uid: 777047ee-196b-48b3-8d65-c33f048f3cff
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s-app: nodelocaldns
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/restartedAt: "2025-12-20T16:41:43+03:00"
+        prometheus.io/port: "9253"
+        prometheus.io/scrape: "true"
+      creationTimestamp: null
+      labels:
+        k8s-app: nodelocaldns
+    spec:
+      containers:
+      - args:
+        - -localip
+        - 169.254.25.10
+        - -conf
+        - /etc/coredns/Corefile
+        - -upstreamsvc
+        - coredns
+        image: registry.k8s.io/dns/k8s-dns-node-cache:1.23.1
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 10
+          httpGet:
+            host: 169.254.25.10
+            path: /health
+            port: 9254
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: node-cache
+        ports:
+        - containerPort: 53
+          name: dns
+          protocol: UDP
+        - containerPort: 53
+          name: dns-tcp
+          protocol: TCP
+        - containerPort: 9253
+          name: metrics
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 10
+          httpGet:
+            host: 169.254.25.10
+            path: /health
+            port: 9254
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            memory: 170Mi
+          requests:
+            cpu: 100m
+            memory: 70Mi
+        securityContext:
+          privileged: true
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /etc/coredns
+          name: config-volume
+        - mountPath: /run/xtables.lock
+          name: xtables-lock
+      dnsPolicy: Default
+      hostNetwork: true
+      priorityClassName: system-cluster-critical
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: nodelocaldns
+      serviceAccountName: nodelocaldns
+      terminationGracePeriodSeconds: 0
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+      - effect: NoExecute
+        operator: Exists
+      volumes:
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: Corefile
+            path: Corefile
+          name: nodelocaldns
+        name: config-volume
+      - hostPath:
+          path: /run/xtables.lock
+          type: FileOrCreate
+        name: xtables-lock
+  updateStrategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 20%
+    type: RollingUpdate
+status:
+  currentNumberScheduled: 7
+  desiredNumberScheduled: 7
+  numberAvailable: 7
+  numberMisscheduled: 0
+  numberReady: 7
+  observedGeneration: 4
+  updatedNumberScheduled: 7
