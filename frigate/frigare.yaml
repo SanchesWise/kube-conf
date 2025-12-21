@@ -309,7 +309,7 @@ spec:
           claimName: frigate-storage
       - name: tmp-cache
         emptyDir:
-          sizeLimit: "1Gi"
+          sizeLimit: "2Gi"
 ---
 # Secrets для Frigate
 apiVersion: v1
