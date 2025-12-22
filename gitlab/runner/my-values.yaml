@@ -56,7 +56,10 @@ runners:
           read_only = true 
         environment = [
           "SSL_CERT_FILE=/custom-certs/gitlab.ccsfarm.local.crt"
-        ]                 
+        ]
+        [[runners.kubernetes.host_aliases]]
+          ip = "10.10.2.111"
+          hostnames = ["gitlab.ccsfarm.local", "registry-docker.ccsfarm.local", "registry-nexus.ccsfarm.local", "nexus.ccsfarm.local"]                 
       [runners.cache]
         Type = "s3"
         Path = ""
