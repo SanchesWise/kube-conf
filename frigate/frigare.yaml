@@ -201,6 +201,19 @@ spec:
     requests:
       storage: 10Mi
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tmp-cache
+  namespace: frigate
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: managed-nfs-storage
+  resources:
+    requests:
+      storage: 10Gi
+---
 # Deployment Frigate
 apiVersion: apps/v1
 kind: Deployment
@@ -308,8 +321,8 @@ spec:
         persistentVolumeClaim:
           claimName: frigate-storage
       - name: tmp-cache
-        emptyDir:
-          sizeLimit: "2Gi"
+        persistentVolumeClaim:
+          claimName: tmp-cache
 ---
 # Secrets для Frigate
 apiVersion: v1
