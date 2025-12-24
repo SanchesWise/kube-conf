@@ -53,7 +53,8 @@ runners:
         cpu_limit = "4"
         memory_limit = "12Gi"
         cpu_request = "1"
-        memory_request = "8Gi"        
+        memory_request = "8Gi"
+        image_pull_secrets = ["regcred"]        
         [[runners.kubernetes.volumes.secret]]
           name = "custom-ca-certs"
           mount_path = "/custom-certs"
