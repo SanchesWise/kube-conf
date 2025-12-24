@@ -50,10 +50,10 @@ runners:
         image = "registry.red-soft.ru/ubi8/ubi-micro"
         dns_config_options = ["ndots:2"]
         # helper_image = "if use custom helper"
-        cpu_limit = "2"
-        memory_limit = "4Gi"
+        cpu_limit = "4"
+        memory_limit = "8Gi"
         cpu_request = "1"
-        memory_request = "2Gi"        
+        memory_request = "4Gi"        
         [[runners.kubernetes.volumes.secret]]
           name = "custom-ca-certs"
           mount_path = "/custom-certs"
