@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nats-exporter
+  namespace: monitoring        # ВАЖНО: Обычно мониторы кладут туда, где прометеус
+  labels:
+    release: kube-prometheus-stack  # Главный ключ, чтобы Прометеус увидел конфиг
+    app: nats-metrics
+spec:
+  selector:
+    matchLabels:
+      app: nats-metrics        # Должен совпадать с лейблом в Сервисе из Шага 2
+  namespaceSelector:
+    matchNames:
+      - nats                   # Неймспейс, где живет сервис
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 15s
+    scrapeTimeout: 10s

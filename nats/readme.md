@@ -65,3 +65,13 @@ kubectl get pods -n nats
 kubectl get pvc -n nats
 
   
+зайти в консоль
+
+kubectl run -i --tty --rm nats-fix-consumer --image=natsio/nats-box:latest --restart=Never -n nats -- sh
+
+export NATS_URL=nats://nats.nats.svc.cluster.local:4222
+
+команды
+
+nats stream ls
+nats consumer  ls
