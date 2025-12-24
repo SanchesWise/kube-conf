@@ -51,9 +51,9 @@ runners:
         dns_config_options = ["ndots:2"]
         # helper_image = "if use custom helper"
         cpu_limit = "4"
-        memory_limit = "8Gi"
+        memory_limit = "12Gi"
         cpu_request = "1"
-        memory_request = "4Gi"        
+        memory_request = "8Gi"        
         [[runners.kubernetes.volumes.secret]]
           name = "custom-ca-certs"
           mount_path = "/custom-certs"
