@@ -31,7 +31,7 @@ spec:
           containers:
           - name: backup
             # Твой собранный образ
-            image: registry-docker.ccsfarm.local/pg-backup:latest
+            image: registry-docker.ccsfarm.local//images/infra/pg-backup:latest
             imagePullPolicy: Always
             
             # Переменные конфигурации
