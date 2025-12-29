@@ -26,7 +26,7 @@ grafana:
 prometheus:
   prometheusSpec:
     # Сколько хранить метрики (по умолчанию 10 дней, ставим 30)
-    retention: 30d
+    retention: 15d
     externalUrl: "https://prom.ccsfarm.local"    
     
     # Хранилище для метрик
@@ -40,7 +40,7 @@ prometheus:
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
-              storage: 20Gi
+              storage: 30Gi
     
     # ВАЖНО: Разрешаем Прометеусу искать ServiceMonitor в других неймспейсах
     # Без этого он не увидит Redis/Postgres/Cert-manager
