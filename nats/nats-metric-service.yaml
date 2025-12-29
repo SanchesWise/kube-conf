@@ -5,7 +5,7 @@ metadata:
   namespace: nats
   labels:
     app.kubernetes.io/name: nats
-    app: nats-metrics
+    app.kubernetes.io/component: nats
 spec:
   ports:
   - name: metrics
