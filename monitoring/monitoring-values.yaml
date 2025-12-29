@@ -63,8 +63,12 @@ alertmanager:
       receiver: 'telegram-receiver' # Дефолтный получатель
       routes:
         - match:
-            alertname: Watchdog
-          receiver: 'null' # Игнорируем системный алерт "Watchdog" (он просто проверяет, что алертинг жив)     
+            alertname: "Watchdog|InfoInhibitor"
+          receiver: 'null' # Игнорируем системный алерт "Watchdog" (он просто проверяет, что алертинг жив)
+        - match:
+            severity: "none"
+          receiver: 'null'          
+             
     # --- ПОЛУЧАТЕЛИ ---
     receivers:
     - name: 'null'
