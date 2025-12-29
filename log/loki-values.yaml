@@ -87,13 +87,14 @@ loki:
 
     compactor:
       working_directory: /var/loki/compactor
+      shared_store: s3 
       compaction_interval: 10m
-      retention_enabled: false
+      retention_enabled: true
       retention_delete_delay: 2h
       retention_delete_worker_count: 150
 
     limits_config:
-      retention_period: 30d
+      retention_period: 14d
 
 # --- КОМПОНЕНТЫ ---
 
