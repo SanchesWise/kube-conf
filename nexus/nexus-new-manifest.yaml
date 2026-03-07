@@ -102,13 +102,13 @@ spec:
             httpGet:
               path: /service/rest/v1/status
               port: 8081
-            initialDelaySeconds: 150 # Увеличено, Nexus долго стартует
+            initialDelaySeconds: 600 # Увеличено, Nexus долго стартует
             periodSeconds: 30
           readinessProbe:
             httpGet:
               path: /service/rest/v1/status
               port: 8081
-            initialDelaySeconds: 300
+            initialDelaySeconds: 600
             periodSeconds: 30
           volumeMounts:
             - name: nexus-data-ssd
