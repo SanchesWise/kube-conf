@@ -97,10 +97,10 @@ spec:
               value: "-Xms2g -Xmx2g -XX:+UseG1GC -Djava.util.prefs.userRoot=/nexus-data/javaprefs"
           resources:
             requests:
-              memory: "100Mi"
+              memory: "2Gi"
               cpu: "2"
             limits:
-              memory: "800Mi"
+              memory: "4Gi"
               cpu: "4"              
           # Увеличенные таймауты
           livenessProbe:
