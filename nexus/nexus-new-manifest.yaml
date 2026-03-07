@@ -90,7 +90,7 @@ spec:
             - name: NEXUS_CONTEXT
               value: "/"
             - name: INSTALL4J_ADD_VM_PARAMS
-              value: "-Xms2g -Xmx2g -XX:+UseG1GC -Djava.util.prefs.userRoot=/nexus-data/javaprefs"
+              value: "-Xms2g -Xmx2g -XX:+UseG1GC -Djava.util.prefs.userRoot=/nexus-data/javaprefs -Djava.security.egd=file:/dev/./urandom"
           resources:
             requests:
               memory: "4Gi"
