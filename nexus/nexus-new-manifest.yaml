@@ -9,8 +9,6 @@ metadata:
   name: nexus
 
 ---
-# 1. Быстрый SSD диск только для базы и логов (Longhorn)
-# Блобы здесь храниться НЕ БУДУТ, поэтому 10-20 ГБ хватит с головой.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -40,7 +38,6 @@ spec:
       labels:
         app: nexus
     spec:
-      # Init: Исправляем права (нужно только для SSD тома)
       initContainers:
         - name: fix-permissions
           image: busybox:1.36
@@ -65,7 +62,8 @@ spec:
           - -c
           - |
             cat > /nexus-data/etc/nexus.properties << 'EOF'
-            nexus-args=${jetty.etc}/jetty.xml,${jetty.etc}/jetty-https.xml,${jetty.etc}/jetty-requestlog.xml
+            # УДАЛЕНО: jetty-https.xml, так как SSL делает Ingress
+            nexus-args=${jetty.etc}/jetty.xml,${jetty.etc}/jetty-requestlog.xml
             application-port=8081
             application-port-ssl=8443
             nexus.docker.enabled=true
@@ -79,20 +77,18 @@ spec:
             mountPath: /nexus-data
       containers:
         - name: nexus
-          image: sonatype/nexus3:3.69.0  # Стабильная версия
-          imagePullPolicy: IfNotPresent
+          image: sonatype/nexus3:3.69.0
           securityContext:
             runAsUser: 200
             runAsGroup: 200
           ports:
             - containerPort: 8081
               name: ui
-            - containerPort: 5000        # Порт для Docker
+            - containerPort: 5000
               name: docker-hosted
           env:
             - name: NEXUS_CONTEXT
               value: "/"
-            # КРИТИЧНО: Фикс ошибки "Could not lock User prefs"
             - name: INSTALL4J_ADD_VM_PARAMS
               value: "-Xms2g -Xmx2g -XX:+UseG1GC -Djava.util.prefs.userRoot=/nexus-data/javaprefs"
           resources:
@@ -102,26 +98,21 @@ spec:
             limits:
               memory: "4Gi"
               cpu: "4"              
-          # Увеличенные таймауты
           livenessProbe:
             httpGet:
               path: /service/rest/v1/status
               port: 8081
-            initialDelaySeconds: 120
+            initialDelaySeconds: 150 # Увеличено, Nexus долго стартует
             periodSeconds: 30
-            failureThreshold: 10
           readinessProbe:
             httpGet:
               path: /service/rest/v1/status
               port: 8081
-            initialDelaySeconds: 120
+            initialDelaySeconds: 150
             periodSeconds: 30
-            failureThreshold: 10
-            
           volumeMounts:
             - name: nexus-data-ssd
               mountPath: /nexus-data
-
       volumes:
         - name: nexus-data-ssd
           persistentVolumeClaim:
@@ -136,17 +127,15 @@ metadata:
 spec:
   selector:
     app: nexus
-  type: ClusterIP
   ports:
     - name: ui
       port: 8081
       targetPort: 8081
     - name: docker
-      port: 8082        # Внешний порт (на него смотрит Ingress)
-      targetPort: 5000  # Внутренний порт
+      port: 8082
+      targetPort: 5000
 
 ---
-
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -154,8 +143,6 @@ metadata:
   namespace: nexus
 spec:
   secretName: nexus-tls-secret
-  duration: 8760h # 1 год
-  renewBefore: 720h # 30 дней до истечения
   commonName: nexus.ccsfarm.local
   dnsNames:
     - nexus.ccsfarm.local
@@ -171,12 +158,11 @@ metadata:
   name: nexus-ingress
   namespace: nexus
   annotations:
-    cert-manager.io/issuer-group: cert-manager.io
-    cert-manager.io/issuer-kind: ClusterIssuer
-    cert-manager.io/issuer-name: ccsfarm-ca-issuer
+    cert-manager.io/cluster-issuer: ccsfarm-ca-issuer
     nginx.ingress.kubernetes.io/proxy-body-size: "0"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "900"
     nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    # Nexus требует, чтобы Ingress сообщал ему об HTTPS
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
 spec:
   ingressClassName: nginx
