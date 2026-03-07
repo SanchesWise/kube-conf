@@ -93,10 +93,10 @@ spec:
               value: "-Xms2g -Xmx2g -XX:+UseG1GC -Djava.util.prefs.userRoot=/nexus-data/javaprefs -Djava.security.egd=file:/dev/./urandom"
           resources:
             requests:
-              memory: "4Gi"
+              memory: "8Gi"
               cpu: "4"
             limits:
-              memory: "6Gi"
+              memory: "8Gi"
               cpu: "6"              
           livenessProbe:
             httpGet:
