@@ -69,6 +69,12 @@ global:
   hosts:
     domain: ccsfarm.local
     https: true
+    gitlab:
+      name: gitlab.ccsfarm.local
+    kas:
+      name: kas.ccsfarm.local
+    registry:
+      name: registry.ccsfarm.local
     externalIP: 10.10.2.111
 
   appConfig:
