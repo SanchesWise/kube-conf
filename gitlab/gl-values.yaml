@@ -38,7 +38,7 @@ global:
     port: 6379
 
   psql:
-    host: postgres-np.postgres.svc.cluster.local
+    host: 10.10.1.130
     namespace: postgres
     port: 5432
     database: gitlab
