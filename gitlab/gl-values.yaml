@@ -59,16 +59,9 @@ global:
     class: nginx
     provider: nginx
     annotations:
-      cert-manager.io/cluster-issuer: "ccsfarm-ca-issuer"
+      kubernetes.io/ingress.class: "nginx"
       nginx.ingress.kubernetes.io/proxy-body-size: "512m" # Рекомендую добавить для GitLab
-      cert-manager.io/issuer: null
-      cert-manager.io/common-name: "gitlab.ccsfarm.local"
-      cert-manager.io/subject-alt-names: "gitlab.ccsfarm.local,kas.ccsfarm.local,registry.ccsfarm.local"      
     tls:
-      hosts:
-        - gitlab.ccsfarm.local
-        - kas.ccsfarm.local
-        - registry.ccsfarm.local 
       enabled: true
       secretName: gitlab-tls-secret
 

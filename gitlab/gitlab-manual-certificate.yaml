@@ -1,0 +1,16 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gitlab-unified-cert
+  namespace: gitlab
+spec:
+  # Имя секрета должно совпадать с тем, что в values.yaml
+  secretName: gitlab-tls-secret
+  issuerRef:
+    name: ccsfarm-ca-issuer
+    kind: ClusterIssuer
+  commonName: gitlab.ccsfarm.local
+  dnsNames:
+    - gitlab.ccsfarm.local
+    - kas.ccsfarm.local
+    - registry.ccsfarm.local
