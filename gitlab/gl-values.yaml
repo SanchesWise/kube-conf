@@ -55,7 +55,7 @@ global:
     sslmode: disable
 
   ingress:
-    configureCertmanager: true
+    configureCertmanager: false
     class: nginx
     provider: nginx
     annotations:
@@ -124,6 +124,9 @@ gitlab:
       # Разрешаем доступ к метрикам из сети кубера
       ipWhitelist:
         - 0.0.0.0/0
+    ingress:
+      annotations:
+        cert-manager.io/cluster-issuer: "ccsfarm-ca-issuer"        
   workhorse:
     # Иногда Workhorse требует отдельной настройки мониторинга
     monitoring:
@@ -139,3 +142,4 @@ gitlab:
     persistence:
       size: 50Gi
       storageClass: "managed-nfs-storage"
+      
