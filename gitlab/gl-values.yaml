@@ -61,6 +61,7 @@ global:
     annotations:
       cert-manager.io/cluster-issuer: "ccsfarm-ca-issuer"
       nginx.ingress.kubernetes.io/proxy-body-size: "512m" # Рекомендую добавить для GitLab
+      cert-manager.io/issuer: null
     tls:
       enabled: true
       secretName: gitlab-tls-secret
