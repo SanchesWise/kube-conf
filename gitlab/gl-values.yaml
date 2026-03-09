@@ -63,8 +63,12 @@ global:
       nginx.ingress.kubernetes.io/proxy-body-size: "512m" # Рекомендую добавить для GitLab
       cert-manager.io/issuer: null
     tls:
-      enabled: true
-      secretName: gitlab-tls-secret
+      - hosts:
+        - gitlab.ccsfarm.local
+        - kas.ccsfarm.local
+        - registry.ccsfarm.local 
+        enabled: true
+        secretName: gitlab-tls-secret
 
   hosts:
     domain: ccsfarm.local
