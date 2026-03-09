@@ -6,6 +6,9 @@ redis:
 
 installCertmanager: false
 
+certmanager-issuer:
+  install: false
+
 prometheus:
   install: false
 
