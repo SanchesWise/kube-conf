@@ -8,6 +8,7 @@ installCertmanager: false
 
 certmanager-issuer:
   install: false
+  email: admin@ccsfarm.local
 
 prometheus:
   install: false
