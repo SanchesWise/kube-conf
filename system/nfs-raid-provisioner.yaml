@@ -1,0 +1,91 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nfs-raid-provisioner-sa
+  namespace: kube-system # Можно использовать существующий неймспейс системных сервисов
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: nfs-raid-provisioner-runner
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "update", "patch"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: run-nfs-raid-provisioner
+subjects:
+  - kind: ServiceAccount
+    name: nfs-raid-provisioner-sa
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: nfs-raid-provisioner-runner
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nfs-raid-provisioner
+  namespace: kube-system
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: nfs-raid-provisioner
+  template:
+    metadata:
+      labels:
+        app: nfs-raid-provisioner
+    spec:
+      serviceAccountName: nfs-raid-provisioner-sa
+      containers:
+        - name: nfs-raid-provisioner
+          image: registry.k8s.io/sig-storage/nfs-subdir-external-provisioner:v4.0.2
+          volumeMounts:
+            - name: nfs-client-root
+              mountPath: /persistentvolumes
+          env:
+            - name: PROVISIONER_NAME
+              # Уникальное имя, на которое будет ссылаться StorageClass
+              value: ccsfarm.local/nfs-raid-provisioner 
+            - name: NFS_SERVER
+              value: 10.10.1.55
+            - name: NFS_PATH
+              value: /hdd-raid/pve-nfs/
+      volumes:
+        - name: nfs-client-root
+          nfs:
+            server: 10.10.1.55
+            path: /hdd-raid/pve-nfs/
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-raid
+provisioner: ccsfarm.local/nfs-raid-provisioner # Должно совпадать с PROVISIONER_NAME
+reclaimPolicy: Retain # Оставлять данные на диске после удаления PVC (безопаснее для архива)
+mountOptions:
+  - nfsvers=4.1
+  - hard
+  - nolock
