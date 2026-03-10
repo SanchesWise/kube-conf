@@ -9,7 +9,7 @@ logLevel: info
 logFormat: json
 sessionServer:
   enabled: false
-certsSecretName: custom-ca-certs
+certsSecretName: gitlab-tls-secret
 rbac:
   create: true
   rules:
