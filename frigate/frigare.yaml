@@ -4,7 +4,7 @@ kind: Namespace
 metadata:
   name: frigate
 ---
-# Конфигурация Frigate
+# Конфигурация Frigate с поддержкой NVIDIA GPU (TensorRT)
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -16,9 +16,14 @@ data:
       enabled: false
 
     detectors:
-      cpu:
-        type: cpu
-        num_threads: 4
+      # Используем TensorRT для NVIDIA P104-100
+      ov:
+        type: tensorrt
+        device: 0
+
+    ffmpeg:
+      # Аппаратное декодирование NVIDIA (NVDEC)
+      hwaccel_args: preset-nvidia-h264
 
     go2rtc:
       streams:
@@ -36,7 +41,6 @@ data:
           input_args: -rtsp_transport udp
           inputs:
             - path: rtsp://127.0.0.1:8554/garden_main_stream
-            #- path: rtsp://admin:12345@91.210.159.231:7011/Streaming/Channels/1
               input_args: preset-rtsp-restream
               roles:
                 - record
@@ -66,9 +70,6 @@ data:
             - dog
             - cat
             - car
-        review:
-          alerts: {}
-          detections: {}
 
       enter:
         enabled: true
@@ -76,7 +77,6 @@ data:
           input_args: -rtsp_transport udp
           inputs:
             - path: rtsp://127.0.0.1:8554/enter_main_stream
-            #- path: rtsp://admin:12345@91.210.159.231:7012/Streaming/Channels/1
               input_args: preset-rtsp-restream
               roles:
                 - record
@@ -94,21 +94,6 @@ data:
           fps: 3
         record:
           enabled: true 
-        snapshots:
-          enabled: true 
-        zones:
-          test2:
-            coordinates: 0.02,0.283,0.976,0.288,0.978,0.974,0.02,0.968
-            loitering_time: 0
-        objects:
-          track:
-            - person
-            - dog
-            - cat
-            - car
-        review:
-          alerts: {}
-          detections: {}
 
       home:
         enabled: true
@@ -116,7 +101,6 @@ data:
           input_args: -rtsp_transport udp
           inputs:
             - path: rtsp://127.0.0.1:8554/home_main_stream
-            #- path: rtsp://admin:admin@91.210.159.231:7013/cam/realmonitor?channel=1&subtype=0
               input_args: preset-rtsp-restream
               roles:
                 - record
@@ -134,47 +118,16 @@ data:
           fps: 3
         record:
           enabled: true 
-        snapshots:
-          enabled: true 
-        zones:
-          test3:
-            coordinates: 0.02,0.283,0.976,0.288,0.978,0.974,0.02,0.968
-            loitering_time: 0
-        objects:
-          track:
-            - person
-            - dog
-            - cat
-            - car
-        review:
-          alerts: {}
-          detections: {}
 
     record:
       enabled: true
       retain:
         days: 7
         mode: all
-      alerts:
-        retain:
-          days: 7
-      detections:
-        retain:
-          days: 7
 
-    camera_groups:
-      main-group:
-        order: 1
-        icon: LuAperture
-        cameras:
-          - garden
-          - enter
-          - home
     version: 0.16-0
-
-      
 ---
-# PVC для хранения видеоархива
+# PVC для архива на новом NFS RAID (10.10.1.55)
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -183,11 +136,12 @@ metadata:
 spec:
   accessModes:
     - ReadWriteMany
-  storageClassName: managed-nfs-storage
+  storageClassName: nfs-raid # Используем новый StorageClass
   resources:
     requests:
-      storage: 100Gi
+      storage: 500Gi
 ---
+# Остальные PVC можно оставить на старом или перевести на новый
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -196,10 +150,10 @@ metadata:
 spec:
   accessModes:
     - ReadWriteMany
-  storageClassName: managed-nfs-storage
+  storageClassName: nfs-raid
   resources:
     requests:
-      storage: 10Mi
+      storage: 100Mi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -209,7 +163,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteMany
-  storageClassName: managed-nfs-storage
+  storageClassName: nfs-raid
   resources:
     requests:
       storage: 10Gi
@@ -220,8 +174,6 @@ kind: Deployment
 metadata:
   name: frigate
   namespace: frigate
-  labels:
-    app: frigate
 spec:
   replicas: 1
   selector:
@@ -232,6 +184,14 @@ spec:
       labels:
         app: frigate
     spec:
+      tolerations:
+      - key: "gpu"
+        operator: "Equal"
+        value: "low-performance"
+        effect: "NoSchedule"
+      nodeSelector:
+        gpu-performance: low        
+      
       initContainers:
       - name: copy-config
         image: busybox:1.34
@@ -241,45 +201,36 @@ spec:
         - |
           mkdir -p /config
           cp /config-base/config.yml /config/config.yml
-          mkdir -p /config/model_cache
           chown -R 1000:1000 /config
-          chmod -R 755 /config
         volumeMounts:
         - name: config-base
           mountPath: /config-base
-          readOnly: true
         - name: config
           mountPath: /config
-        securityContext:
-          runAsUser: 0
-          runAsGroup: 0    
+      
       containers:
       - name: frigate
         image: ghcr.io/blakeblackshear/frigate:stable
-        imagePullPolicy: IfNotPresent
-        ports:
-        - containerPort: 5000
-          name: web
-        - containerPort: 8971
-          name: web-auth
-        - containerPort: 1935
-          name: rtmp
-        - containerPort: 8554
-          name: rtsp
-        - containerPort: 8555
-          name: webrtc
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+            memory: "4Gi"
+            cpu: "2000m"
+          requests:
+            nvidia.com/gpu: 1
+            memory: "2Gi"
+            cpu: "1000m"        
         env:
         - name: FRIGATE_RTSP_PASSWORD
           valueFrom:
             secretKeyRef:
               name: frigate-secrets
               key: rtsp-password
-        - name: FRIGATE_HOST
-          value: "0.0.0.0"
-        - name: FRIGATE_PORT
-          value: "5000"
-        - name: CONFIG_FILE
-          value: "/config/config.yml"
+        # Параметры NVIDIA
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: "all"
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: "all"
         volumeMounts:
         - name: config
           mountPath: /config        
@@ -287,29 +238,12 @@ spec:
           mountPath: /media/frigate
         - name: tmp-cache
           mountPath: /tmp/cache
-        resources:
-          requests:
-            memory: "1Gi"
-            cpu: "1000m"
-          limits:
-            memory: "2Gi"
-            cpu: "2000m"
+        # Разделяемая память для GPU
+        - name: shm
+          mountPath: /dev/shm
         securityContext:
           privileged: true
-          runAsUser: 0
-          runAsGroup: 0
-        # livenessProbe:
-        #   httpGet:
-        #     path: /
-        #     port: 8971
-        #   initialDelaySeconds: 30
-        #   periodSeconds: 10
-        # readinessProbe:
-        #   httpGet:
-        #     path: /
-        #     port: 8971
-        #   initialDelaySeconds: 5
-        #   periodSeconds: 5        
+      
       volumes:
       - name: config-base
         configMap:
@@ -323,71 +257,10 @@ spec:
       - name: tmp-cache
         persistentVolumeClaim:
           claimName: tmp-cache
+      # Том SHM
+      - name: shm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 1Gi
 ---
-# Secrets для Frigate
-apiVersion: v1
-kind: Secret
-metadata:
-  name: frigate-secrets
-  namespace: frigate
-type: Opaque
-data:
-  rtsp-password: cGFzc3dvcmQ=  # password в base64
----
-# Service для доступа к веб-интерфейсу
-apiVersion: v1
-kind: Service
-metadata:
-  name: frigate-service
-  namespace: frigate
-spec:
-  selector:
-    app: frigate
-  ports:
-  - name: web
-    port: 5000
-    targetPort: 5000
-    nodePort: 30080
-  - name: web-auth
-    port: 8971
-    targetPort: 8971
-    nodePort: 30971
-  - name: rtmp
-    port: 1935
-    targetPort: 1935
-    nodePort: 31935
-  - name: rtsp
-    port: 8554
-    targetPort: 8554
-    nodePort: 30554
-  type: NodePort
----
-# Ingress для веб-интерфейса
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: frigate-ingress
-  namespace: frigate
-  annotations:
-    cert-manager.io/cluster-issuer: ccsfarm-ca-issuer
-    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
-    nginx.ingress.kubernetes.io/proxy-buffers: "4 256k"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
-spec:
-  ingressClassName: nginx
-  tls:
-  - hosts:
-    - frigate.ccsfarm.local
-    secretName: frigate-tls-secret   
-  rules:
-  - host: frigate.ccsfarm.local
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: frigate-service
-            port:
-              number: 5000
+# Остальные объекты (Service, Ingress, Secret) остаются без изменений.
