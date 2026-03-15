@@ -332,4 +332,5 @@ spec:
         backend:
           service:
             name: frigate-service
-            port: 5000
+            port: 
+              number: 5000
