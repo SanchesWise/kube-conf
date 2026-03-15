@@ -16,10 +16,9 @@ data:
       enabled: false
 
     detectors:
-      # Используем TensorRT для NVIDIA P104-100
-      ov:
-        type: tensorrt
-        device: 0
+      nvidia_gpu:
+        type: onnx
+        device: tensorrt
 
     ffmpeg:
       # Аппаратное декодирование NVIDIA (NVDEC)
@@ -237,6 +236,8 @@ spec:
           value: "all"
         - name: NVIDIA_DRIVER_CAPABILITIES
           value: "all"
+        - name: LD_LIBRARY_PATH
+          value: "/usr/lib64:/usr/lib/x86_64-linux-gnu"          
         volumeMounts:
         - name: config
           mountPath: /config        
@@ -247,6 +248,9 @@ spec:
         # Разделяемая память для GPU
         - name: shm
           mountPath: /dev/shm
+        - name: lib64
+          mountPath: /usr/lib/x86_64-linux-gnu # Монтируем библиотеки RedOS туда, где их ждет Frigate
+          readOnly: true          
         securityContext:
           privileged: true
       
@@ -268,6 +272,9 @@ spec:
         emptyDir:
           medium: Memory
           sizeLimit: 1Gi
+      - name: lib64
+        hostPath:
+          path: /usr/lib64 # Путь на вашей ноде RedOS
 ---
 # Secrets для Frigate
 apiVersion: v1
