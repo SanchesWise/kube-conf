@@ -21,8 +21,14 @@ data:
         device: tensorrt
 
     ffmpeg:
-      # Аппаратное декодирование NVIDIA (NVDEC)
-      hwaccel_args: preset-nvidia-h264
+      hwaccel_args: 
+        - -hwaccel
+        - cuda
+        - -hwaccel_output_format
+        - cuda
+      # Добавляем глобальные параметры вывода для предотвращения ошибок конвертации
+      output_args:
+        detect: -f rawvideo -pix_fmt yuv420p
 
     model:
       model_type: yolo-generic
