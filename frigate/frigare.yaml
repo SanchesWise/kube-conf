@@ -20,13 +20,6 @@ data:
         type: onnx
         device: tensorrt
 
-    model:
-      path: /config/model_cache/yolov8n-640.onnx
-      input_tensor: nhwc
-      input_pixel_format: rgb
-      width: 640
-      height: 640
-
     ffmpeg:
       # Аппаратное декодирование NVIDIA (NVDEC)
       hwaccel_args: preset-nvidia-h264
