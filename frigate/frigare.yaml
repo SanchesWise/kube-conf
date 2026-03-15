@@ -23,12 +23,9 @@ data:
     ffmpeg:
       # Аппаратное декодирование NVIDIA (NVDEC)
       hwaccel_args: preset-nvidia-h264
-      
+
     model:
-      width: 640
-      height: 640
-      input_tensor: nhwc
-      input_pixel_format: rgb      
+      path: yolov8n-640.onnx
 
     go2rtc:
       streams:
@@ -189,8 +186,6 @@ spec:
       labels:
         app: frigate
       annotations:
-        # ЭТО КРИТИЧНО ДЛЯ CRI-O + CDI:
-        # Указываем рантайму пробросить все NVIDIA библиотеки и устройства
         cdi.k8s.io/nvidia: "all"         
     spec:
       tolerations:
@@ -242,6 +237,9 @@ spec:
           value: "all"
         - name: NVIDIA_DRIVER_CAPABILITIES
           value: "compute,video,utility"
+        # Указываем искать в папке хоста В ПОСЛЕДНЮЮ ОЧЕРЕДЬ (через двоеточие в конце)
+        - name: LD_LIBRARY_PATH
+          value: "/usr/lib/x86_64-linux-gnu:/usr/lib/host-nvidia"          
         volumeMounts:
         - name: config
           mountPath: /config        
@@ -252,15 +250,12 @@ spec:
         # Разделяемая память для GPU
         - name: shm
           mountPath: /dev/shm
+        - name: host-libs
+          mountPath: /usr/lib/host-nvidia
+          readOnly: true
         - name: nvidia-smi
           mountPath: /usr/bin/nvidia-smi
-          readOnly: true
-        - name: libcuda
-          mountPath: /usr/lib/x86_64-linux-gnu/libcuda.so.1
-          readOnly: true
-        - name: libnvidia-ml
-          mountPath: /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1
-          readOnly: true          
+          readOnly: true    
         securityContext:
           privileged: true
       
@@ -282,15 +277,12 @@ spec:
         emptyDir:
           medium: Memory
           sizeLimit: 1Gi
+      - name: host-libs
+        hostPath:
+          path: /usr/lib64
       - name: nvidia-smi
         hostPath:
-          path: /usr/bin/nvidia-smi # Путь в RedOS
-      - name: libcuda
-        hostPath:
-          path: /usr/lib64/libcuda.so.1
-      - name: libnvidia-ml
-        hostPath:
-          path: /usr/lib64/libnvidia-ml.so.1          
+          path: /usr/bin/nvidia-smi       
 ---
 # Secrets для Frigate
 apiVersion: v1
