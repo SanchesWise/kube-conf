@@ -139,7 +139,7 @@ spec:
   storageClassName: nfs-raid # Используем новый StorageClass
   resources:
     requests:
-      storage: 500Gi
+      storage: 100Gi
 ---
 # Остальные PVC можно оставить на старом или перевести на новый
 apiVersion: v1
@@ -183,6 +183,10 @@ spec:
     metadata:
       labels:
         app: frigate
+      annotations:
+        # ЭТО КРИТИЧНО ДЛЯ CRI-O + CDI:
+        # Указываем рантайму пробросить все NVIDIA библиотеки и устройства
+        cdi.k8s.io/nvidia: "all"         
     spec:
       tolerations:
       - key: "gpu"
@@ -210,7 +214,7 @@ spec:
       
       containers:
       - name: frigate
-        image: ghcr.io/blakeblackshear/frigate:stable
+        image: ghcr.io/blakeblackshear/frigate:stable-tensorrt
         resources:
           limits:
             nvidia.com/gpu: 1
