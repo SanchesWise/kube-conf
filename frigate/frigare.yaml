@@ -16,9 +16,9 @@ data:
       enabled: false
 
     detectors:
-      tensorrt:
-        type: tensorrt
-        device: 0
+      nvidia_gpu:
+        type: onnx
+        device: tensorrt
 
     ffmpeg:
       # Аппаратное декодирование NVIDIA (NVDEC)
