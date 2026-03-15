@@ -25,11 +25,14 @@ data:
       hwaccel_args: preset-nvidia-h264
 
     model:
+      model_type: yolo-generic
+      width: 640 # <--- should match the imgsize set during model export
+      height: 640 # <--- should match the imgsize set during model export
       input_tensor: nchw
-      input_pixel_format: rgb
-      width: 320
-      height: 320
-      
+      input_dtype: float
+      path: /config/model_cache/yolov9-e-640.onnx 
+      labelmap_path: /labelmap/coco-80.txt
+
     go2rtc:
       streams:
         garden_main_stream:
