@@ -20,15 +20,15 @@ data:
         type: onnx
         device: tensorrt
 
-    ffmpeg:
-      hwaccel_args: 
-        - -hwaccel
-        - cuda
-        - -hwaccel_output_format
-        - cuda
-      # Добавляем глобальные параметры вывода для предотвращения ошибок конвертации
-      output_args:
-        detect: -f rawvideo -pix_fmt yuv420p
+    # ffmpeg:
+    #   # hwaccel_args: 
+    #   #   - -hwaccel
+    #   #   - cuda
+    #   #   - -hwaccel_output_format
+    #   #   - cuda
+    #   # Добавляем глобальные параметры вывода для предотвращения ошибок конвертации
+    #   # output_args:
+    #   #   detect: -f rawvideo -pix_fmt yuv420p
 
     model:
       model_type: yolo-generic
