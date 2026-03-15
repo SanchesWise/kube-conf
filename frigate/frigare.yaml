@@ -199,10 +199,11 @@ spec:
       initContainers:
       - name: copy-config
         image: busybox:1.34
+        imagePullPolicy: Always
         command:
         - sh
         - -c
-        - |
+        - |1
           mkdir -p /config
           cp /config-base/config.yml /config/config.yml
           chown -R 1000:1000 /config
@@ -215,6 +216,7 @@ spec:
       containers:
       - name: frigate
         image: ghcr.io/blakeblackshear/frigate:stable-tensorrt
+        imagePullPolicy: Always
         resources:
           limits:
             nvidia.com/gpu: 1
