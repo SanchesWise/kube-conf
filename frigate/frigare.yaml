@@ -23,6 +23,12 @@ data:
     ffmpeg:
       # Аппаратное декодирование NVIDIA (NVDEC)
       hwaccel_args: preset-nvidia-h264
+      
+    model:
+      width: 640
+      height: 640
+      input_tensor: nhwc
+      input_pixel_format: rgb      
 
     go2rtc:
       streams:
@@ -246,6 +252,15 @@ spec:
         # Разделяемая память для GPU
         - name: shm
           mountPath: /dev/shm
+        - name: nvidia-smi
+          mountPath: /usr/bin/nvidia-smi
+          readOnly: true
+        - name: libcuda
+          mountPath: /usr/lib/x86_64-linux-gnu/libcuda.so.1
+          readOnly: true
+        - name: libnvidia-ml
+          mountPath: /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1
+          readOnly: true          
         securityContext:
           privileged: true
       
@@ -267,6 +282,15 @@ spec:
         emptyDir:
           medium: Memory
           sizeLimit: 1Gi
+      - name: nvidia-smi
+        hostPath:
+          path: /usr/bin/nvidia-smi # Путь в RedOS
+      - name: libcuda
+        hostPath:
+          path: /usr/lib64/libcuda.so.1
+      - name: libnvidia-ml
+        hostPath:
+          path: /usr/lib64/libnvidia-ml.so.1          
 ---
 # Secrets для Frigate
 apiVersion: v1
