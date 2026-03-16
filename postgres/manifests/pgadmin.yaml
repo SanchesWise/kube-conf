@@ -112,6 +112,7 @@ metadata:
   namespace: postgres  
   name: pgadmin
   annotations:
+    cert-manager.io/cluster-issuer: ccsfarm-ca-issuer  
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "300"  

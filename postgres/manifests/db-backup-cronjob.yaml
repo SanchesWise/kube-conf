@@ -37,7 +37,7 @@ spec:
             # Переменные конфигурации
             env:
             - name: DB_HOST
-              value: "postgres-np" # Сервис внутри этого же NS
+              value: "10.10.2.130" # Сервис внутри этого же NS
             - name: MINIO_ENDPOINT
               # Полный путь, так как MinIO в другом NS
               value: "minio.minio.svc.cluster.local:9000" 
