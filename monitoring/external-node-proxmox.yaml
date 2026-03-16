@@ -25,7 +25,10 @@ metadata:
     type: external-node
 subsets:
 - addresses:
-  - ip: 10.10.1.54           # <-- Ваш реальный IP Proxmox
+  - ip:
+      10.10.1.53 
+      10.10.1.54
+      10.10.1.55
   ports:
   - name: metrics
     port: 9100

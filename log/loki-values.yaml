@@ -102,7 +102,7 @@ write:
   replicas: 2
   persistence:
     enabled: true
-    storageClass: managed-nfs-storage
+    storageClass: nfs-raid
     size: 10Gi
   # Обязательно разрешаем подстановку переменных в конфиг
   extraArgs:
@@ -125,7 +125,7 @@ read:
   replicas: 2
   persistence:
     enabled: true
-    storageClass: managed-nfs-storage
+    storageClass: nfs-raid
     size: 10Gi
   extraArgs:
     - -config.expand-env=true
@@ -145,7 +145,7 @@ backend:
   replicas: 2
   persistence:
     enabled: true
-    storageClass: managed-nfs-storage
+    storageClass: nfs-raid
     size: 10Gi
   extraArgs:
     - -config.expand-env=true
