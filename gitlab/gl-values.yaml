@@ -125,6 +125,9 @@ global:
 # https://docs.gitlab.com/charts/advanced/external-object-storage/#backups
 gitlab:
   webservice:
+    hostAliases:
+      - ip: "10.10.2.122"
+        hostnames: ["minio-ext-fast.ccsfarm.local"]  
     monitoring:
       # Разрешаем доступ к метрикам из сети кубера
       ipWhitelist:
@@ -137,7 +140,14 @@ gitlab:
     monitoring:
       exporter:
         enabled: true
+  sidekiq:
+    hostAliases:
+      - ip: "10.10.2.122"
+        hostnames: ["minio-ext-fast.ccsfarm.local"]        
   toolbox:
+    hostAliases:
+      - ip: "10.10.2.122"
+        hostnames: ["minio-ext-fast.ccsfarm.local"]  
     backups:
       objectStorage:
         config:
@@ -146,5 +156,5 @@ gitlab:
   gitaly:
     persistence:
       size: 50Gi
-      storageClass: "managed-nfs-storage"
+      storageClass: "longhorn"
       
