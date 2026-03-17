@@ -13,12 +13,12 @@ metadata:
   namespace: docker-registry
 type: Opaque
 stringData:
-  s3-access-key: "admin"      
+  s3-access-key: "registry"      
   s3-secret-key: "password"   
   
   # htpasswd: admin / password
   htpasswd: |
-    admin:$2y$05$ncdNAqY15kNLfOanZiMrausiz42PszOJTfZyT.1hflOfWnYnSlcxO
+    registry:$2y$05$ehRNqkT88hRObBMFw4KRT.aga0tKtFDIPI23A91WbkrSXTMFkraOa
 
 ---
 # ==========================================================
