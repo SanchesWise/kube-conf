@@ -8,6 +8,15 @@ checkInterval: 30
 logLevel: info
 logFormat: json
 
+hostAliases:
+  - ip: "10.10.2.111"
+    hostnames:
+      - "gitlab.ccsfarm.local"
+      - "registry-docker.ccsfarm.local"
+  - ip: "10.10.2.122"
+    hostnames:
+      - "minio-ext-fast.ccsfarm.local"
+
 # 1. Доверие корневому сертификату для менеджера (основной под)
 certsSecretName: custom-ca-certs
 envVars:
