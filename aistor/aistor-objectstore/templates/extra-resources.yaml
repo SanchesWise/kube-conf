@@ -1,4 +1,0 @@
-{{- range .Values.extraResources }}
----
-{{- include "aistor.render" (dict "value" . "context" $) }}
-{{- end }}
