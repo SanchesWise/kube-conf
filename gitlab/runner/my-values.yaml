@@ -49,6 +49,7 @@ runners:
   config: |
     [[runners]]
       output_limit = 10000
+      request_concurrency = 4      
       [runners.kubernetes]
         image = "registry.red-soft.ru/ubi8/ubi-micro"
         dns_config_options = ["ndots:2"]
@@ -75,6 +76,7 @@ runners:
         
         environment = [
           "SSL_CERT_FILE=/etc/ssl/certs/ccsfarm-ca.crt"
+          "FF_USE_ADAPTIVE_REQUEST_CONCURRENCY=true"          
         ]
 
       # 4. Настройка кэширования на внешний MinIO
