@@ -27,10 +27,6 @@ loki:
     memberlist:
       join_members:
         - loki-memberlist.log.svc.cluster.local
-      dead_node_reclaim_time: 30s
-      gossip_interval: 200ms
-      gossip_nodes: 3
-      push_pull_interval: 30s  
     common:
       replication_factor: 2
       path_prefix: /var/loki
