@@ -6,7 +6,7 @@ loki:
   memberlist:
     service: loki-memberlist
     join_members:
-      - loki-memberlist
+      - loki-memberlist.log.svc.cluster.local
 
   storage:
     type: s3
@@ -24,6 +24,13 @@ loki:
   # Мы используем structuredConfig, чтобы напрямую внедрить настройки в config.yaml
   # Это отключает "магию" Helm-чарта и заставляет Loki работать точно по инструкции MinIO.
   structuredConfig:
+    memberlist:
+      join_members:
+        - loki-memberlist.log.svc.cluster.local
+      dead_node_reclaim_time: 30s
+      gossip_interval: 200ms
+      gossip_nodes: 3
+      push_pull_interval: 30s  
     common:
       replication_factor: 2
       path_prefix: /var/loki
