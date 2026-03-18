@@ -17,7 +17,7 @@ type: Opaque
 stringData:
   # Данные от твоего MinIO (те же, что и в основном секрете)
   access-key: "admin" 
-  secret-key: "password"
+  secret-key: "FeerDe3o"
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -50,7 +50,7 @@ spec:
               value: "10.10.2.130" # Сервис внутри этого же NS
             - name: MINIO_ENDPOINT
               # Полный путь, так как MinIO в другом NS
-              value: "minio.minio.svc.cluster.local:9000" 
+              value: "minio-ext-slow.ccsfarm.local:9000" 
             
             # Секреты БД (из родного секрета базы)
             - name: POSTGRES_USER
