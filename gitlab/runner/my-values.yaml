@@ -75,7 +75,7 @@ runners:
           read_only = true 
         
         environment = [
-          "SSL_CERT_FILE=/etc/ssl/certs/ccsfarm-ca.crt"
+          "SSL_CERT_FILE=/etc/ssl/certs/ccsfarm-ca.crt",
           "FF_USE_ADAPTIVE_REQUEST_CONCURRENCY=true"          
         ]
 
