@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nexus-external-exporter
+  namespace: monitoring
+  labels:
+    k8s-app: nexus-exporter
+spec:
+  clusterIP: None
+  ports:
+    - name: http-metrics
+      port: 8081
+      targetPort: 8081
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: nexus-external-exporter
+  namespace: monitoring
+spec:
+  subsets:
+    - addresses:
+        - ip: 10.10.2.121
+      ports:
+        - name: http-metrics
+          port: 8081
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nexus-external-monitor
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      k8s-app: nexus-exporter
+  endpoints:
+    - port: http-metrics
+      path: /service/metrics/prometheus
+      interval: 30s
