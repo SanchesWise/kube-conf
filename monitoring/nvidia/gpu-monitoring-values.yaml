@@ -2,9 +2,23 @@
 nodeSelector:
   nvidia.com/gpu.present: "true"
 
+privileged: true
+
+env:
+  - name: NVIDIA_VISIBLE_DEVICES
+    value: "all"
+  - name: NVIDIA_DRIVER_CAPABILITIES
+    value: "compute,utility"
+
+extraConfig:
+  user: "0"
+
 # Если у вас есть Taints на GPU нодах, добавьте Tolerations
 tolerations:
   - operator: Exists
+    effect: NoSchedule
+  - operator: Exists
+    effect: NoExecute
 
 serviceMonitor:
   enabled: true
