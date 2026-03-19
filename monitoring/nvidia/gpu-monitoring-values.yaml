@@ -19,13 +19,22 @@ securityContext:
   seLinuxOptions:
     type: "spc_t"
 
+extraVolumes:
+  - name: metrics-config
+    configMap:
+      name: exporter-metrics-config
+
+extraVolumeMounts:
+  - name: metrics-config
+    mountPath: /etc/dcgm-exporter/metrics.csv
+    subPath: metrics.csv # Монтируем конкретный ключ из ConfigMap как файл
+
 arguments:
   - "-f"
   - "/etc/dcgm-exporter/metrics.csv"
 
 extraConfig:
   user: "0"
-  configMap: exporter-metrics-config
 
 env:
   - name: NVIDIA_VISIBLE_DEVICES
