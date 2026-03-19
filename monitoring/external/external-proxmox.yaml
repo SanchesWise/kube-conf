@@ -17,15 +17,14 @@ kind: Endpoints
 metadata:
   name: proxmox-nodes-exporter
   namespace: monitoring
-spec:
-  subsets:
-    - addresses:
-        - ip: 10.10.1.53
-        - ip: 10.10.1.54
-        - ip: 10.10.1.55
-      ports:
-        - name: http-metrics
-          port: 9100
+subsets:
+  - addresses:
+      - ip: 10.10.1.53
+      - ip: 10.10.1.54
+      - ip: 10.10.1.55
+    ports:
+      - name: http-metrics
+        port: 9100
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor

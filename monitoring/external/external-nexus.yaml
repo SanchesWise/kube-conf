@@ -17,13 +17,12 @@ kind: Endpoints
 metadata:
   name: nexus-external-exporter
   namespace: monitoring
-spec:
-  subsets:
-    - addresses:
-        - ip: 10.10.2.121
-      ports:
-        - name: http-metrics
-          port: 8081
+subsets:
+  - addresses:
+      - ip: 10.10.2.121
+    ports:
+      - name: http-metrics
+        port: 8081
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor

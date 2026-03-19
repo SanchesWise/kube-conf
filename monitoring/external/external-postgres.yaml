@@ -17,15 +17,14 @@ kind: Endpoints
 metadata:
   name: postgres-external-exporter
   namespace: monitoring
-spec:
-  subsets:
-    - addresses:
-        - ip: 10.10.2.131
-        - ip: 10.10.2.132
-        - ip: 10.10.2.133
-      ports:
-        - name: http-metrics
-          port: 9187
+subsets:
+  - addresses:
+      - ip: 10.10.2.131
+      - ip: 10.10.2.132
+      - ip: 10.10.2.133
+    ports:
+      - name: http-metrics
+        port: 9187
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor

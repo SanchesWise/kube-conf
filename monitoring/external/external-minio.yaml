@@ -17,14 +17,13 @@ kind: Endpoints
 metadata:
   name: minio-external-exporter
   namespace: monitoring
-spec:
-  subsets:
-    - addresses:
-        - ip: 10.10.2.122 # slow
-        - ip: 10.10.2.123 # fast
-      ports:
-        - name: http-metrics
-          port: 9000
+subsets:
+  - addresses:
+      - ip: 10.10.2.122 # slow
+      - ip: 10.10.2.123 # fast
+    ports:
+      - name: http-metrics
+        port: 9000
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
