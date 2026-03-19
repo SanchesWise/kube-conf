@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-slow-exporter
+  namespace: monitoring
+  labels:
+    k8s-app: minio-slow-exporter
+spec:
+  clusterIP: None
+  ports:
+    - name: http-metrics
+      port: 9000
+      targetPort: 9000
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: minio-slow-exporter
+  namespace: monitoring
+subsets:
+  - addresses:
+      - ip: 10.10.2.122
+    ports:
+      - name: http-metrics
+        port: 9000
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: minio-slow-monitor
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      k8s-app: minio-slow-exporter
+  namespaceSelector:
+    matchNames:
+      - monitoring
+  endpoints:
+    - port: http-metrics
+      path: /minio/v2/metrics/cluster
+      interval: 30s

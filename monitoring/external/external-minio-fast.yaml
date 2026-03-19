@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: minio-external-exporter
+  name: minio-fast-exporter
   namespace: monitoring
   labels:
-    k8s-app: minio-exporter
+    k8s-app: minio-fast-exporter
 spec:
   clusterIP: None
   ports:
@@ -15,12 +15,11 @@ spec:
 apiVersion: v1
 kind: Endpoints
 metadata:
-  name: minio-external-exporter
+  name: minio-fast-exporter
   namespace: monitoring
 subsets:
   - addresses:
-      - ip: 10.10.2.122 # slow
-      - ip: 10.10.2.123 # fast
+      - ip: 10.10.2.123
     ports:
       - name: http-metrics
         port: 9000
@@ -28,14 +27,17 @@ subsets:
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: minio-external-monitor
+  name: minio-fast-monitor
   namespace: monitoring
   labels:
     release: kube-prometheus-stack
 spec:
   selector:
     matchLabels:
-      k8s-app: minio-exporter
+      k8s-app: minio-fast-exporter
+  namespaceSelector:
+    matchNames:
+      - monitoring
   endpoints:
     - port: http-metrics
       path: /minio/v2/metrics/cluster
