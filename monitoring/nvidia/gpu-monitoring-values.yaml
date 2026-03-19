@@ -19,8 +19,13 @@ securityContext:
   seLinuxOptions:
     type: "spc_t"
 
+arguments:
+  - "-f"
+  - "/etc/dcgm-exporter/metrics.csv"
+
 extraConfig:
   user: "0"
+  configMap: exporter-metrics-config
 
 env:
   - name: NVIDIA_VISIBLE_DEVICES
