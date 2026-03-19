@@ -6,7 +6,7 @@ runtimeClassName: nvidia
 
 # Включаем привилегированный режим
 privileged: true
-
+allowPrivilegeEscalation: true
 # Дополнительные настройки безопасности для RedOS/SELinux
 securityContext:
   privileged: true
