@@ -19,16 +19,16 @@ securityContext:
   seLinuxOptions:
     type: "spc_t"
 
-extraVolumes:
+volumes:
   - name: metrics-config
     configMap:
       name: exporter-metrics-config
 
-extraVolumeMounts:
+volumeMounts:
   - name: metrics-config
     mountPath: /etc/dcgm-exporter/metrics.csv
-    subPath: metrics.csv # Монтируем конкретный ключ из ConfigMap как файл
-
+    subPath: metrics.csv
+    
 arguments:
   - "-f"
   - "/etc/dcgm-exporter/metrics.csv"
