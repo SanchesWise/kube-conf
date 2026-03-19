@@ -1,35 +1,42 @@
-# Запускать только на нодах с GPU
-nodeSelector:
-  nvidia.com/gpu.present: "true"
-
-privileged: true
-
 image:
   repository: nvcr.io/nvidia/k8s/dcgm-exporter
-  # Переходим с distroless на ubuntu22.04 версию того же релиза
   tag: "3.2.5-3.1.8-ubi8"
+
+runtimeClassName: nvidia
+
+# Включаем привилегированный режим
+privileged: true
+
+# Дополнительные настройки безопасности для RedOS/SELinux
+securityContext:
+  privileged: true
+  capabilities:
+    add:
+      - SYS_ADMIN
+      - SETFCAP
+  # Отключаем ограничения SELinux (запуск в контексте SPC)
+  seLinuxOptions:
+    type: "spc_t"
+
+extraConfig:
+  user: "0"
 
 env:
   - name: NVIDIA_VISIBLE_DEVICES
     value: "all"
   - name: NVIDIA_DRIVER_CAPABILITIES
-    value: "compute,utility"
+    value: "all" # Разрешаем все возможности драйвера
+  - name: LD_LIBRARY_PATH
+    value: "/usr/lib64:/usr/local/nvidia/lib64"
 
-extraConfig:
-  user: "0"
+nodeSelector:
+  nvidia.com/gpu.present: "true"
 
-# Если у вас есть Taints на GPU нодах, добавьте Tolerations
 tolerations:
-  - operator: Exists
+  - operator: "Exists"
 
 serviceMonitor:
   enabled: true
-  # Метка должна совпадать с селектором вашего Prometheus
   labels:
     release: kube-prometheus-stack
   interval: 15s
-
-# Метрики, которые будут собираться
-arguments:
-  - "-f"
-  - "/etc/dcgm-exporter/default-whitelist.csv"
