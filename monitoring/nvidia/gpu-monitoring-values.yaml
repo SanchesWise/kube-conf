@@ -7,7 +7,7 @@ privileged: true
 image:
   repository: nvcr.io/nvidia/k8s/dcgm-exporter
   # Переходим с distroless на ubuntu22.04 версию того же релиза
-  tag: 4.5.2-4.8.1-ubuntu22.04
+  tag: 3.3.5-3.4.1-ubi8 
 
 env:
   - name: NVIDIA_VISIBLE_DEVICES
