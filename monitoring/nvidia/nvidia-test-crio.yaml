@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nvidia-test-runtime
+  namespace: monitoring
+spec:
+  runtimeClassName: nvidia # Ключевой параметр!
+  nodeSelector:
+    nvidia.com/gpu.present: "true"
+  tolerations:
+  - operator: "Exists"
+  restartPolicy: Never
+  containers:
+  - name: nvidia-test
+    image: nvidia/cuda:12.2.0-runtime-ubuntu22.04
+    command: ["nvidia-smi"]
+    env:
+    - name: NVIDIA_VISIBLE_DEVICES
+      value: "all"
+    - name: NVIDIA_DRIVER_CAPABILITIES
+      value: "compute,utility"

@@ -16,9 +16,6 @@ extraConfig:
 # Если у вас есть Taints на GPU нодах, добавьте Tolerations
 tolerations:
   - operator: Exists
-    effect: NoSchedule
-  - operator: Exists
-    effect: NoExecute
 
 serviceMonitor:
   enabled: true
