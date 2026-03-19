@@ -1,0 +1,19 @@
+# Запускать только на нодах с GPU
+nodeSelector:
+  nvidia.com/gpu.present: "true"
+
+# Если у вас есть Taints на GPU нодах, добавьте Tolerations
+tolerations:
+  - operator: Exists
+
+serviceMonitor:
+  enabled: true
+  # Метка должна совпадать с селектором вашего Prometheus
+  labels:
+    release: kube-prometheus-stack
+  interval: 15s
+
+# Метрики, которые будут собираться
+arguments:
+  - "-f"
+  - "/etc/dcgm-exporter/default-whitelist.csv"

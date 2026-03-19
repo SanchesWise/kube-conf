@@ -1,0 +1,55 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: gpu-rules
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+  - name: gpu.rules
+    rules:
+    - alert: GpuHighTemperature
+      expr: DCGM_FI_DEV_GPU_TEMP > 80
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High GPU Temperature on {{ $labels.instance }}"
+        description: "GPU temperature is above 80°C (current value: {{ $value }}°C) for more than 5 minutes."
+
+    - alert: GpuCriticalTemperature
+      expr: DCGM_FI_DEV_GPU_TEMP > 90
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Critical GPU Temperature on {{ $labels.instance }}"
+        description: "GPU temperature is dangerously high (above 90°C) on node {{ $labels.node }}."
+
+    - alert: GpuXidError
+      expr: DCGM_FI_DEV_XID_ERRORS > 0
+      for: 0s
+      labels:
+        severity: critical
+      annotations:
+        summary: "GPU Hardware Error (XID) on {{ $labels.instance }}"
+        description: "NVIDIA driver reported an XID error code. This usually indicates a driver crash or hardware issue."
+
+    - alert: GpuMemoryError
+      expr: DCGM_FI_DEV_FB_USED / DCGM_FI_DEV_FB_FREE > 0.95
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: "GPU Out of Memory on {{ $labels.instance }}"
+        description: "GPU Video RAM is almost full (over 95%) on {{ $labels.node }}."
+
+    - alert: GpuPowerOverlimit
+      expr: DCGM_FI_DEV_POWER_USAGE > 250
+      for: 15m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High GPU Power Consumption on {{ $labels.instance }}"
+        description: "GPU power usage is very high ({{ $value }}W) for 15 minutes."
