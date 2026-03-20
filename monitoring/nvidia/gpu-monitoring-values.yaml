@@ -24,10 +24,14 @@ extraConfigMapVolumes:
   configMap:
     name: exporter-metrics-config
     
-extraEnv:
-- name: DCGM_EXPORTER_CONFIGMAP_DATA
-  value: "default:exporter-metrics-volume"
+arguments: ["-f", "/etc/dcgm-custom/metrics.csv"]
 
+extraVolumeMounts:
+  - name: exporter-metrics-volume
+    # Монтируем всю директорию целиком
+    mountPath: /etc/dcgm-custom
+    readOnly: true
+    
 extraConfig:
   user: "0"
 
