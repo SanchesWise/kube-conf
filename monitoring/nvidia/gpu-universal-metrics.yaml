@@ -7,28 +7,28 @@ data:
   metrics.csv: |
     # Группа, ID метрики, Тип, Имя для Prometheus, Описание
     # --- БАЗОВЫЕ МЕТРИКИ (Для всех карт) ---
-    DCGM_FI_DEV_GPU_TEMP,      gauge, gpu_temp,            Temperature of the GPU
-    DCGM_FI_DEV_POWER_USAGE,   gauge, power_usage,         Power usage (W)
-    DCGM_FI_DEV_FAN_SPEED,     gauge, fan_speed,           Fan speed (%)
-    DCGM_FI_DEV_GPU_UTIL,      gauge, gpu_utilization,     GPU utilization (%)
-    DCGM_FI_DEV_MEM_COPY_UTIL, gauge, mem_copy_utilization, Memory utilization (%)
-    DCGM_FI_DEV_FB_USED,       gauge, memory_used,         Used VRAM (MB)
-    DCGM_FI_DEV_FB_FREE,       gauge, memory_free,         Free VRAM (MB)
-    DCGM_FI_DEV_XID_ERRORS,    gauge, xid_errors,          Last XID error code
-    DCGM_FI_DEV_MEMORY_TEMP,   gauge, gpu_memory_temp,     Memory temperature
-    
+    DCGM_FI_DEV_GPU_TEMP,      gauge, gpu_temp #,            Temperature of the GPU
+    DCGM_FI_DEV_POWER_USAGE,   gauge, power_usage #,         Power usage (W)
+    DCGM_FI_DEV_FAN_SPEED,     gauge, fan_speed #,           Fan speed (%)
+    DCGM_FI_DEV_GPU_UTIL,      gauge, gpu_utilization #,     GPU utilization (%)
+    DCGM_FI_DEV_MEM_COPY_UTIL, gauge, mem_copy_utilization #, Memory utilization (%)
+    DCGM_FI_DEV_FB_USED,       gauge, memory_used # ,         Used VRAM (MB)
+    DCGM_FI_DEV_FB_FREE,       gauge, memory_free #,         Free VRAM (MB)
+    DCGM_FI_DEV_XID_ERRORS,    gauge, xid_errors #,          Last XID error code
+    DCGM_FI_DEV_MEMORY_TEMP,   gauge, gpu_memory_temp #,     Memory temperature
+
     # --- ПРОФИЛИРОВАНИЕ (Для RTX 3090) ---
-    DCGM_FI_PROF_GR_ENGINE_ACTIVE,   gauge, gr_engine_active,   Graphics engine activity (0-1)
-    DCGM_FI_PROF_PIPE_TENSOR_ACTIVE, gauge, tensor_core_active, Tensor core activity (0-1)
-    DCGM_FI_PROF_DRAM_ACTIVE,        gauge, dram_active,        DRAM activity ratio
-    DCGM_FI_PROF_PCIE_TX_BYTES,      counter, pcie_tx_bytes,    PCIe transmit throughput (Bytes)
-    DCGM_FI_PROF_PCIE_RX_BYTES,      counter, pcie_rx_bytes,    PCIe receive throughput (Bytes)
+    DCGM_FI_PROF_GR_ENGINE_ACTIVE,   gauge, gr_engine_active #,   Graphics engine activity (0-1)
+    DCGM_FI_PROF_PIPE_TENSOR_ACTIVE, gauge, tensor_core_active #, Tensor core activity (0-1)
+    DCGM_FI_PROF_DRAM_ACTIVE,        gauge, dram_active #,        DRAM activity ratio
+    DCGM_FI_PROF_PCIE_TX_BYTES,      counter, pcie_tx_bytes #,    PCIe transmit throughput (Bytes)
+    DCGM_FI_PROF_PCIE_RX_BYTES,      counter, pcie_rx_bytes #,    PCIe receive throughput (Bytes)
 
     # --- NVLINK МЕТРИКИ (Для RTX 3090 SLI/NVLink) ---
     # Состояние линков (0 - Down, 1 - Up)
-    DCGM_FI_DEV_NVLINK_LINK_STATE,             gauge, nvlink_link_state,      NVLink link state
+    DCGM_FI_DEV_NVLINK_LINK_STATE,             gauge, nvlink_link_state #,      NVLink link state
     # Ошибки передачи (должны быть 0 в идеале)
-    DCGM_FI_DEV_NVLINK_REPLAY_ERROR_COUNT_TOTAL, counter, nvlink_replay_errors, Total NVLink replay errors
-    DCGM_FI_DEV_NVLINK_RECOVERY_ERROR_COUNT_TOTAL, counter, nvlink_recovery_errors, Total NVLink recovery errors
+    DCGM_FI_DEV_NVLINK_REPLAY_ERROR_COUNT_TOTAL, counter, nvlink_replay_errors #, Total NVLink replay errors
+    DCGM_FI_DEV_NVLINK_RECOVERY_ERROR_COUNT_TOTAL, counter, nvlink_recovery_errors #, Total NVLink recovery errors
     # Пропускная способность (Raw данные)
-    DCGM_FI_DEV_NVLINK_BANDWIDTH_TOTAL,        counter, nvlink_bandwidth_total, Total NVLink bandwidth (Bytes)
+    DCGM_FI_DEV_NVLINK_BANDWIDTH_TOTAL,        counter, nvlink_bandwidth_total #, Total NVLink bandwidth (Bytes)
