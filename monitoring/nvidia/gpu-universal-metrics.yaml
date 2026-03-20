@@ -40,7 +40,7 @@ data:
 
     # --- NVLINK МЕТРИКИ (Для RTX 3090 SLI/NVLink) ---
     # Состояние линков (0 - Down, 1 - Up)
-    DCGM_FI_DEV_NVLINK_LINK_STATE,             gauge, nvlink_link_state
+    # DCGM_FI_DEV_NVLINK_LINK_STATE,             gauge, nvlink_link_state
     #,      NVLink link state
     # Ошибки передачи (должны быть 0 в идеале)
     DCGM_FI_DEV_NVLINK_REPLAY_ERROR_COUNT_TOTAL, counter, nvlink_replay_errors

@@ -6,7 +6,7 @@ runtimeClassName: nvidia
 
 # Включаем привилегированный режим
 privileged: true
-
+hostPID: true
 # Дополнительные настройки безопасности для RedOS/SELinux
 securityContext:
   allowPrivilegeEscalation: true
@@ -31,7 +31,7 @@ extraVolumeMounts:
     # Монтируем всю директорию целиком
     mountPath: /etc/dcgm-custom
     readOnly: true
-    
+
 extraConfig:
   user: "0"
 
