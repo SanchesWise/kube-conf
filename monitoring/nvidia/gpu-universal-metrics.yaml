@@ -15,6 +15,7 @@ data:
     DCGM_FI_DEV_FB_USED,       gauge, memory_used,         Used VRAM (MB)
     DCGM_FI_DEV_FB_FREE,       gauge, memory_free,         Free VRAM (MB)
     DCGM_FI_DEV_XID_ERRORS,    gauge, xid_errors,          Last XID error code
+    DCGM_FI_DEV_MEMORY_TEMP,   gauge, gpu_memory_temp,     Memory temperature
     
     # --- ПРОФИЛИРОВАНИЕ (Для RTX 3090) ---
     DCGM_FI_PROF_GR_ENGINE_ACTIVE,   gauge, gr_engine_active,   Graphics engine activity (0-1)

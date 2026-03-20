@@ -19,19 +19,14 @@ securityContext:
   seLinuxOptions:
     type: "spc_t"
 
-volumes:
-  - name: metrics-config
-    configMap:
-      name: exporter-metrics-config
-
-volumeMounts:
-  - name: metrics-config
-    mountPath: /etc/dcgm-exporter/metrics.csv
-    subPath: metrics.csv
+extraConfigMapVolumes:
+- name: exporter-metrics-volume
+  configMap:
+    name: exporter-metrics-config
     
-arguments:
-  - "-f"
-  - "/etc/dcgm-exporter/metrics.csv"
+extraEnv:
+- name: DCGM_EXPORTER_CONFIGMAP_DATA
+  value: "default:exporter-metrics-volume"
 
 extraConfig:
   user: "0"
