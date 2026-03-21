@@ -49,7 +49,13 @@ spec:
               mkdir -p /nexus-data/javaprefs &&
               mkdir -p /nexus-data/etc/ &&
               chown -R 200:200 /nexus-data &&
-              chmod -R 755 /nexus-data
+              chmod -R 755 /nexus-data &&
+              mkdir -p /nexus-data/etc/logback /nexus-data/blobs &&
+              if [ -f /nexus-data/etc/logback/logback-nexus.xml ]; then
+                sed -i 's/level="DEBUG"/level="INFO"/g' /nexus-data/etc/logback/logback-nexus.xml;
+                sed -i 's/level="TRACE"/level="INFO"/g' /nexus-data/etc/logback/logback-nexus.xml;
+              fi;
+              find /nexus-data -name "*.lock" -delete;
           securityContext:
             runAsUser: 0
           volumeMounts:
