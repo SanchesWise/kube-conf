@@ -44,18 +44,28 @@ spec:
           command: 
             - sh
             - -c
-            - >
-              mkdir -p /nexus-data/blobs &&
-              mkdir -p /nexus-data/javaprefs &&
-              mkdir -p /nexus-data/etc/ &&
-              chown -R 200:200 /nexus-data &&
-              chmod -R 755 /nexus-data &&
-              mkdir -p /nexus-data/etc/logback /nexus-data/blobs &&
+            - |
+              # 1. Создаем структуру директорий
+              mkdir -p /nexus-data/blobs /nexus-data/javaprefs /nexus-data/etc/logback
+              
+              # 2. Удаляем ВСЕ файлы блокировок (главная причина ошибки)
+              echo "Cleaning up lock files..."
+              rm -f /nexus-data/lock
+              rm -f /nexus-data/nexus.lock
+              rm -f /nexus-data/db/*.lock
+              find /nexus-data -name "*.lock" -delete
+              find /nexus-data -name "lock" -delete
+              
+              # 3. Принудительно ставим INFO в логи, если был DEBUG
               if [ -f /nexus-data/etc/logback/logback-nexus.xml ]; then
-                sed -i 's/level="DEBUG"/level="INFO"/g' /nexus-data/etc/logback/logback-nexus.xml;
-                sed -i 's/level="TRACE"/level="INFO"/g' /nexus-data/etc/logback/logback-nexus.xml;
-              fi;
-              find /nexus-data -name "*.lock" -delete;
+                sed -i 's/level="DEBUG"/level="INFO"/g' /nexus-data/etc/logback/logback-nexus.xml
+                sed -i 's/level="TRACE"/level="INFO"/g' /nexus-data/etc/logback/logback-nexus.xml
+              fi
+              
+              # 4. Исправляем права (владелец 200 - это nexus)
+              chown -R 200:200 /nexus-data
+              chmod -R 755 /nexus-data
+              echo "Init cleanup finished."
           securityContext:
             runAsUser: 0
           volumeMounts:
