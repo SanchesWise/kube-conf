@@ -47,7 +47,7 @@ spec:
             - |
               # 1. Создаем структуру директорий
               mkdir -p /nexus-data/blobs /nexus-data/javaprefs /nexus-data/etc/logback
-              
+              rm -rf /nexus-data/cache/*
               # 2. Удаляем ВСЕ файлы блокировок (главная причина ошибки)
               echo "Cleaning up lock files..."
               rm -f /nexus-data/lock
