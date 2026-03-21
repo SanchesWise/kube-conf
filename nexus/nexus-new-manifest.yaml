@@ -77,11 +77,11 @@ spec:
           - sh
           - -c
           - |
+            mkdir -p /nexus-data/etc          
             cat > /nexus-data/etc/nexus.properties << 'EOF'
-            # УДАЛЕНО: jetty-https.xml, так как SSL делает Ingress
-            nexus-args=${jetty.etc}/jetty.xml,${jetty.etc}/jetty-requestlog.xml
+            nexus-args=${jetty.etc}/jetty.xml,${jetty.etc}/jetty-http.xml,${jetty.etc}/jetty-requestlog.xml
             application-port=8081
-            application-port-ssl=8443
+            application-host=0.0.0.0
             nexus.docker.enabled=true
             nexus.docker.v2.enabled=true
             nexus.docker.v2.port=5000
