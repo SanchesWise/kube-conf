@@ -45,40 +45,46 @@ spec:
             - sh
             - -c
             - |
-              # 1. Создаем структуру директорий
-              mkdir -p /nexus-data/blobs /nexus-data/javaprefs /nexus-data/etc/logback
-              rm -rf /nexus-data/cache/*
-              # 2. Удаляем ВСЕ файлы блокировок (главная причина ошибки)
-              echo "Cleaning up lock files..."
-              rm -f /nexus-data/lock
-              rm -f /nexus-data/nexus.lock
-              rm -f /nexus-data/db/*.lock
+              set -e
+              echo "Starting deep cleanup..."
+              
+              # Удаляем целиком папки кэша и временных файлов
+              rm -rf /nexus-data/cache
+              rm -rf /nexus-data/tmp
+              rm -rf /nexus-data/instances
+              
+              # Удаляем абсолютно все лок-файлы
               find /nexus-data -name "*.lock" -delete
               find /nexus-data -name "lock" -delete
               
-              # 3. Принудительно ставим INFO в логи, если был DEBUG
+              # Создаем структуру заново
+              mkdir -p /nexus-data/cache /nexus-data/tmp /nexus-data/etc /nexus-data/blobs /nexus-data/javaprefs
+              
+              # Сбрасываем уровень логирования в INFO (чтобы не забивать IO)
               if [ -f /nexus-data/etc/logback/logback-nexus.xml ]; then
                 sed -i 's/level="DEBUG"/level="INFO"/g' /nexus-data/etc/logback/logback-nexus.xml
                 sed -i 's/level="TRACE"/level="INFO"/g' /nexus-data/etc/logback/logback-nexus.xml
               fi
-              
-              # 4. Исправляем права (владелец 200 - это nexus)
+
+              # Финальный проход по правам
               chown -R 200:200 /nexus-data
               chmod -R 755 /nexus-data
-              echo "Init cleanup finished."
+              sync
+              echo "Cleanup finished."
           securityContext:
             runAsUser: 0
           volumeMounts:
             - name: nexus-data-ssd
               mountPath: /nexus-data
+
         - name: configure-docker-connector
           image: busybox:1.36
           command:
           - sh
           - -c
           - |
-            mkdir -p /nexus-data/etc          
             cat > /nexus-data/etc/nexus.properties << 'EOF'
+            # ВАЖНО: jetty-http.xml ОБЯЗАТЕЛЕН
             nexus-args=${jetty.etc}/jetty.xml,${jetty.etc}/jetty-http.xml,${jetty.etc}/jetty-requestlog.xml
             application-port=8081
             application-host=0.0.0.0
