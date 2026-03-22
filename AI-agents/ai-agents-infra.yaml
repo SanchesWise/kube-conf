@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-agents
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-api
+  namespace: ai-agents
+spec:
+  ports:
+  - port: 8000
+    targetPort: 8000
+    name: api
+  selector:
+    app: deepseek-r1

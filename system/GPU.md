@@ -1,10 +1,3 @@
-helm repo add nvidia https://nvidia.github.io/dcgm-exporter/helm-charts
-helm repo update
-
-helm install dcgm-exporter nvidia/dcgm-exporter \
-  -f gpu-monitoring-values.yaml \
-  -n monitoring
-
 Настоящая документация описывает процесс ввода в эксплуатацию новой GPU-ноды в кластере `ccsfarm.local` и правила развертывания приложений, использующих аппаратное ускорение.
 
 ---

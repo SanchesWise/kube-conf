@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deepseek-r1
+  namespace: ai-agents
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deepseek-r1
+  template:
+    metadata:
+      labels:
+        app: deepseek-r1
+    spec:
+      # 1. Ваш кастомный RuntimeClass
+      runtimeClassName: nvidia
+      
+      # 2. Направляем на 3090 (High Performance)
+      nodeSelector:
+        gpu: "high-performance"
+      
+      # 3. Разрешаем запуск на помеченной ноде
+      tolerations:
+      - key: "gpu"
+        operator: "Equal"
+        value: "high-performance"
+        effect: "NoSchedule"
+
+      containers:
+      - name: vllm-engine
+        image: vllm/vllm-openai:latest # На 2026 год актуальный стек
+        resources:
+          limits:
+            nvidia.com/gpu: 2 # Захватываем обе 3090
+        env:
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: "all"
+        args:
+        - "--model"
+        - "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
+        - "--tensor-parallel-size"
+        - "2" # Распараллеливание на 2 карты
+        - "--max-model-len"
+        - "32768" # Контекст для работы с кодом
+        - "--gpu-memory-utilization"
+        - "0.95"
+        ports:
+        - containerPort: 8000
