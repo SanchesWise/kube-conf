@@ -47,3 +47,12 @@ spec:
         - "0.95"
         ports:
         - containerPort: 8000
+        volumeMounts:
+        - name: nvme-volume
+          mountPath: /model-cache
+      
+      volumes:
+      - name: nvme-volume
+        hostPath:
+          path: /mnt/nvme-storage
+          type: DirectoryOrCreate        
