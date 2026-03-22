@@ -16,11 +16,11 @@ spec:
       # 1. Ваш кастомный RuntimeClass
       runtimeClassName: nvidia
       
-      # 2. Направляем на 3090 (High Performance)
+      # Использовать точное имя Label из вашего вывода
       nodeSelector:
-        gpu: "high-performance"
+        gpu-performance: "high"
       
-      # 3. Разрешаем запуск на помеченной ноде
+      # Использовать точное имя Taint из вашего вывода
       tolerations:
       - key: "gpu"
         operator: "Equal"
