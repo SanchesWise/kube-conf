@@ -39,6 +39,8 @@ spec:
         # Путь к нашему быстрому NVMe
         - name: HF_HOME
           value: "/model-cache"
+        - name: VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS
+          value: "1"
         args:
         - "--model"
         - "casperhansen/deepseek-r1-distill-llama-70b-awq"
@@ -52,7 +54,7 @@ spec:
         - "16384" 
         # СНИЖАЕМ ДО 0.90, чтобы оставить 2.4 ГБ "воздуха" на каждой карте
         - "--gpu-memory-utilization"
-        - "0.90"
+        - "0.9328"
         # ОГРАНИЧИВАЕМ ПАРАЛЛЕЛИЗМ (для агента 32 задачи разом не нужно)
         - "--max-num-seqs"
         - "32"
