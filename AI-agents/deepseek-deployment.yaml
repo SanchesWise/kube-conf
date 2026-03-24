@@ -40,18 +40,18 @@ spec:
         - name: HF_HOME
           value: "/model-cache"
         args:
-        # Используем явные флаги для стабильности в K8s
         - "--model"
         - "casperhansen/deepseek-r1-distill-llama-70b-awq"
         - "--quantization"
-        - "awq"
+        - "awq_marlin" # Можно заменить на awq_marlin для скорости
+        - "--dtype"
+        - "float16" # ИСПРАВЛЕНИЕ: AWQ требует fp16
         - "--tensor-parallel-size"
         - "2"
-        # Для 2x3090 и 70B модели это критический параметр:
         - "--max-model-len"
-        - "8192" 
+        - "32768" 
         - "--gpu-memory-utilization"
-        - "0.90"
+        - "0.95"
         - "--trust-remote-code"
         ports:
         - containerPort: 8000
