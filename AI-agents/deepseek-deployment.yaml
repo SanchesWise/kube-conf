@@ -43,16 +43,21 @@ spec:
         - "--model"
         - "casperhansen/deepseek-r1-distill-llama-70b-awq"
         - "--quantization"
-        - "awq_marlin" # Можно заменить на awq_marlin для скорости
+        - "awq"
         - "--dtype"
-        - "float16" # ИСПРАВЛЕНИЕ: AWQ требует fp16
+        - "float16"
         - "--tensor-parallel-size"
         - "2"
         - "--max-model-len"
         - "16384" 
+        # СНИЖАЕМ ДО 0.90, чтобы оставить 2.4 ГБ "воздуха" на каждой карте
         - "--gpu-memory-utilization"
-        - "0.95"
+        - "0.90"
+        # ОГРАНИЧИВАЕМ ПАРАЛЛЕЛИЗМ (для агента 32 задачи разом не нужно)
+        - "--max-num-seqs"
+        - "32"
         - "--trust-remote-code"
+        - "--enable-prefix-caching"
         ports:
         - containerPort: 8000
         volumeMounts:
