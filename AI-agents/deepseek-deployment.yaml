@@ -29,32 +29,45 @@ spec:
 
       containers:
       - name: vllm-engine
-        image: vllm/vllm-openai:latest # На 2026 год актуальный стек
+        image: vllm/vllm-openai:latest
         resources:
           limits:
-            nvidia.com/gpu: 2 # Захватываем обе 3090
+            nvidia.com/gpu: 2
         env:
         - name: NVIDIA_VISIBLE_DEVICES
           value: "all"
+        # Путь к нашему быстрому NVMe
+        - name: HF_HOME
+          value: "/model-cache"
         args:
-        - "serve" # Согласно новым правилам vllm v0.13+
-        - "casperhansen/deepseek-r1-distill-llama-70b-awq" 
-        - "--tensor-parallel-size"
-        - "2"
-        - "--max-model-len"
-        - "32768" # Уменьшим до 16к для гарантии входа в память
-        - "--gpu-memory-utilization"
-        - "0.95"
+        # Используем явные флаги для стабильности в K8s
+        - "--model"
+        - "casperhansen/deepseek-r1-distill-llama-70b-awq"
         - "--quantization"
         - "awq"
+        - "--tensor-parallel-size"
+        - "2"
+        # Для 2x3090 и 70B модели это критический параметр:
+        - "--max-model-len"
+        - "8192" 
+        - "--gpu-memory-utilization"
+        - "0.90"
+        - "--trust-remote-code"
         ports:
         - containerPort: 8000
         volumeMounts:
-        - name: nvme-volume
+        - name: model-cache
           mountPath: /model-cache
+        # Подключаем ваши логи, как вы сделали ранее
+        - name: log-volume
+          mountPath: /var/log
       
       volumes:
-      - name: nvme-volume
+      - name: model-cache
         hostPath:
           path: /mnt/nvme-storage
-          type: DirectoryOrCreate        
+          type: DirectoryOrCreate
+      - name: log-volume
+        hostPath:
+          path: /var/log
+          type: Directory       
