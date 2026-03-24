@@ -39,8 +39,8 @@ spec:
         # Путь к нашему быстрому NVMe
         - name: HF_HOME
           value: "/model-cache"
-        - name: VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS
-          value: "1"
+        # - name: VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS
+        #   value: "1"
         args:
         - "--model"
         - "casperhansen/deepseek-r1-distill-llama-70b-awq"
@@ -51,7 +51,7 @@ spec:
         - "--tensor-parallel-size"
         - "2"
         - "--max-model-len"
-        - "14000" 
+        - "12000" 
         # СНИЖАЕМ ДО 0.90, чтобы оставить 2.4 ГБ "воздуха" на каждой карте
         - "--gpu-memory-utilization"
         - "0.95"
