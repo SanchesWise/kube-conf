@@ -37,14 +37,16 @@ spec:
         - name: NVIDIA_VISIBLE_DEVICES
           value: "all"
         args:
-        - "--model"
-        - "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
+        - "serve" # Согласно новым правилам vllm v0.13+
+        - "casperhansen/deepseek-r1-distill-llama-70b-awq" 
         - "--tensor-parallel-size"
-        - "2" # Распараллеливание на 2 карты
+        - "2"
         - "--max-model-len"
-        - "32768" # Контекст для работы с кодом
+        - "32768" # Уменьшим до 16к для гарантии входа в память
         - "--gpu-memory-utilization"
         - "0.95"
+        - "--quantization"
+        - "awq"
         ports:
         - containerPort: 8000
         volumeMounts:
