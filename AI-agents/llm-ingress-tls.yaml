@@ -1,0 +1,34 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: llm-api-ingress
+  namespace: ai-agents
+  annotations:
+    # Интеграция с вашим ClusterIssuer
+    cert-manager.io/cluster-issuer: "ccsfarm-ca-issuer"
+    
+    # Настройки для Nginx (критично для длинных рассуждений DeepSeek-R1)
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    
+    # Принудительный редирект на HTTPS
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - llm-api.ccsfarm.local
+    secretName: llm-api-tls # Cert-manager создаст этот секрет сам
+  rules:
+  - host: llm-api.ccsfarm.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: llm-api-service
+            port:
+              number: 80
