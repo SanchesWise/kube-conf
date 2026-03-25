@@ -29,6 +29,6 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: llm-api-service
+            name: llm-api
             port:
               number: 80

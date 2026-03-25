@@ -1,0 +1,66 @@
+Это важное достижение. Проблема с `.local` в современных дистрибутивах Ubuntu (24.04+) обусловлена тем, что система по умолчанию считает этот домен зарезервированным для mDNS (Avahi/Bonjour).
+
+Вот краткое и технически точное мемо по донастройке DNS для вашей инфраструктуры **.ccsfarm.local**.
+
+---
+
+# 🧠 Мемо: Настройка Unicast DNS для зоны .local в Ubuntu 24.04
+
+### 1. Конфликт домена .local
+По стандарту RFC 6762 домен `.local` предназначен для Multicast DNS. Системные библиотеки Linux (glibc) пытаются разрешить такие имена через широковещательные запросы, игнорируя ваш Bind-сервер.
+
+### 2. Этап 1: Корректировка nsswitch.conf (Решающий шаг)
+Файл `/etc/nsswitch.conf` определяет порядок опроса сервисов для разрешения имен.
+*   **Задача:** Поставить системный резолвер (`resolve`) выше, чем поиск по файлам и mDNS.
+*   **Действие:** `sudo vim /etc/nsswitch.conf`
+*   **Корректная строка:**
+    ```text
+    hosts: files resolve [!UNAVAIL=return] dns
+    ```
+    *Здесь `[!UNAVAIL=return]` гарантирует, что если `systemd-resolved` знает о домене, он вернет ответ сразу, не уходя в бесконечный поиск.*
+
+### 3. Этап 2: Тюнинг systemd-resolved
+Настройка самого демона резолвера, чтобы он «приватизировал» зону `.local`.
+*   **Действие:** `sudo vim /etc/systemd/resolved.conf`
+*   **Параметры:**
+    ```ini
+    [Resolve]
+    DNS=10.10.1.151 10.10.1.1       # Ваш Bind и Шлюз
+    Domains=~ccsfarm.local          # Тильда (~ ) заставляет считать зону приоритетной
+    DNSSEC=no                       # Часто ломает резолв внутренних зон
+    MulticastDNS=no                 # Отключаем mDNS, чтобы не мешал Unicast запросам
+    ```
+
+<!-- ### 4. Этап 3: Проверка линка resolv.conf
+Убедитесь, что система использует стаб-резолвер.
+*   **Команда:** `ls -l /etc/resolv.conf`
+*   **Должно быть:** `../run/systemd/resolve/stub-resolv.conf`
+*   **Если нет:** 
+    ```bash
+    sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+    ``` -->
+
+### 5. Команды для применения и очистки
+```bash
+sudo systemctl restart systemd-resolved
+sudo resolvectl flush-caches
+```
+
+---
+
+### 🔍 Методы диагностики (без спец. утилит)
+
+Для проверки в контексте разработки **NewsFactory** (когда нужно убедиться, что агент видит `postgres.ccsfarm.local` или `nats.ccsfarm.local`):
+
+**А. Проверка через системный API (Python):**
+Самый надежный метод, так как он использует те же библиотеки, что и OpenClaw.
+```bash
+python3 -c "import socket; print(socket.gethostbyname('llm-api.ccsfarm.local'))"
+```
+
+**Б. Анализ пути резолва:**
+```bash
+resolvectl query llm-api.ccsfarm.local
+```
+*Смотрите на поле `Data source`. Должно быть `DNS`, а не `mDNS`.*
+
