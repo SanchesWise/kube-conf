@@ -173,8 +173,8 @@ alias kdesc='kubectl describe'
 alias klogs='kubectl logs'
 alias kexec='kubectl exec -it'
 
-alias kctx='kubectl config use-context'
-alias kns='kubectl config set-context --current --namespace'
+#alias kctx='kubectl config use-context'
+#alias kns='kubectl config set-context --current --namespace'
 
 alias watch-gpu='watch -n 1 nvidia-smi'
 # Функция распаковки extract
